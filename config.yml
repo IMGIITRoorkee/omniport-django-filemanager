@@ -1,0 +1,7 @@
+nomenclature:
+  name: filemanger
+  verboseName: FilerManager
+baseUrls:
+  http: django_filemanager/
+  ws: django_filemanager/
+  isApi: true
