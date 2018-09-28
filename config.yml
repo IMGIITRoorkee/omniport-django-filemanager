@@ -1,6 +1,6 @@
 nomenclature:
-  name: filemanger
-  verboseName: FilerManager
+  name: django_filemanger
+  verboseName: Django Filemanager
 baseUrls:
   http: django_filemanager/
   ws: django_filemanager/
