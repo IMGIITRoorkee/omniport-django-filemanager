@@ -21,7 +21,7 @@ class FolderViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset
 
 
-class FileView(APIView):
+class FileAccessView(APIView):
     """
     This view allows authenticated users to view the files.
 
@@ -49,14 +49,18 @@ class FileView(APIView):
         return response
 
 
-class FileUploadView(viewsets.ModelViewSet):
+class FileView(viewsets.ModelViewSet):
     """
-    This view allows a user to upload a file
+    This view allows a user to upload, edit and delete a file
     """
 
-    serializer_class = FileCreateSerializer
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return FileCreateSerializer
+        elif self.action in ['update', 'destroy']:
+            return FileUpdateSerializer
     
     def get_queryset(self):
         person = self.request.person
-        queryset = File.objects.filter(upload__person=person)
+        queryset = File.objects.filter(folder__person=person)
         return queryset

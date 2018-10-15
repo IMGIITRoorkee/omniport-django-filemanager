@@ -39,6 +39,16 @@ class FileCreateSerializer(ModelSerializer):
         return file_object
 
 
+class FileUpdateSerializer(ModelSerializer):
+    """
+    Serializer for updating file object
+    """
+
+    class Meta:
+        model = File
+        fields = ('file_name', 'is_public')
+
+
 class FolderSerializer(ModelSerializer):
     """
     Serializer for Folder object
