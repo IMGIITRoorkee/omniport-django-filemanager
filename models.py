@@ -12,7 +12,7 @@ from kernel.utils.upload_to import UploadTo
 BASE_URL = '/api/django_filemanager/media_files/'
 
 personal_storage = FileSystemStorage(
-    location=settings.PERSONAL_FILES_ROOT,
+    location=settings.PERSONAL_ROOT,
     base_url=BASE_URL,
 )
 
