@@ -33,7 +33,7 @@ class Folder(Model):
     )
 
     def folder_name(self):
-        return self.person.id
+        return self.person.full_name
 
     def __str__(self):
         """
