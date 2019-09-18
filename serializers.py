@@ -46,7 +46,7 @@ class FileUpdateSerializer(ModelSerializer):
 
     class Meta:
         model = File
-        fields = ('file_name', 'is_public')
+        fields = ('file_name', 'is_public', 'id')
 
 
 class FolderSerializer(ModelSerializer):
