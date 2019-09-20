@@ -13,7 +13,8 @@ class FileSerializer(ModelSerializer):
 
     class Meta:
         model = File
-        fields = ('id', 'file_name', 'is_public', 'upload', 'path')
+        fields = ('id', 'file_name', 'is_public',
+                  'upload', 'path', 'datetime_modified')
 
     def get_path(self, obj):
         return obj.file_relative_path()
@@ -46,7 +47,7 @@ class FileUpdateSerializer(ModelSerializer):
 
     class Meta:
         model = File
-        fields = ('file_name', 'is_public', 'id')
+        fields = ('file_name', 'is_public', 'id','datetime_modified')
 
 
 class FolderSerializer(ModelSerializer):
