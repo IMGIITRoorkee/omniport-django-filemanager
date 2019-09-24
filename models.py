@@ -5,8 +5,8 @@ from django.db import models
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
 
-from kernel.models.root import Model
-from kernel.utils.upload_to import UploadTo
+from formula_one.models.base import Model
+from formula_one.utils.upload_to import UploadTo
 
 
 BASE_URL = '/api/django_filemanager/media_files/'
@@ -22,7 +22,7 @@ class Folder(Model):
     This model holds information about a folder owned by a person
     """
 
-    person =  models.OneToOneField(
+    person = models.OneToOneField(
         to=swapper.get_model_name('kernel', 'Person'),
         related_name='folder_user',
         on_delete=models.CASCADE,
@@ -67,7 +67,6 @@ class File(Model):
     file_name = models.CharField(
         max_length=255,
     )
-
 
     def belongs_to(self):
         return self.folder.person
