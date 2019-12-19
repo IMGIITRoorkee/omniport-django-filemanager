@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from kernel.serializers.root import ModelSerializer
+from formula_one.serializers.base import ModelSerializer
 from django_filemanager.models import *
 
 

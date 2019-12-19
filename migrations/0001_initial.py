@@ -4,7 +4,7 @@ from django.conf import settings
 import django.core.files.storage
 from django.db import migrations, models
 import django.db.models.deletion
-import kernel.utils.upload_to
+import formula_one.utils.upload_to
 
 
 class Migration(migrations.Migration):
@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('datetime_created', models.DateTimeField(auto_now_add=True)),
                 ('datetime_modified', models.DateTimeField(auto_now=True)),
-                ('upload', models.FileField(storage=django.core.files.storage.FileSystemStorage(base_url='/api/django_filemanager/media_files/', location='/personal_files'), upload_to=kernel.utils.upload_to.UploadTo('', '', file_manager=True))),
+                ('upload', models.FileField(storage=django.core.files.storage.FileSystemStorage(base_url='/api/django_filemanager/media_files/', location='/personal_files'), upload_to=formula_one.utils.upload_to.UploadTo('', '', file_manager=True))),
                 ('is_public', models.BooleanField(default=False)),
                 ('file_name', models.CharField(max_length=255)),
             ],
