@@ -39,8 +39,13 @@ class FileAccessView(APIView):
         if File.objects.filter(upload=url).exists():
             file_object = File.objects.get(upload=url)
             
-            if (file_object.belongs_to()==person) or file_object.is_public:
-                response = HttpResponse(status=200)
+            if (file_object.belongs_to() == person) or file_object.is_public:
+                fsock = None
+                try:
+                    fsock = open(f'/personal_files/{url}', "rb")
+                except:
+                    pass
+                response = HttpResponse(fsock, status=200)
                 response['Content-Type'] = ''
                 response['X-Accel-Redirect'] = '/personal/{}'.format(url)
                 return response
