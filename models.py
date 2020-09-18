@@ -8,8 +8,10 @@ from django.conf import settings
 from formula_one.models.base import Model
 from formula_one.utils.upload_to import UploadTo
 
+from django_filemanager import constants
 
 BASE_URL = '/api/django_filemanager/media_files/'
+
 
 personal_storage = FileSystemStorage(
     location=settings.PERSONAL_ROOT,
@@ -21,19 +23,61 @@ class Folder(Model):
     """
     This model holds information about a folder owned by a person
     """
+    
 
-    person = models.OneToOneField(
+
+    person = models.ForeignKey(
         to=swapper.get_model_name('kernel', 'Person'),
         related_name='folder_user',
         on_delete=models.CASCADE,
     )
 
-    space = models.IntegerField(
-        default=1024,
+    name = models.CharField(
+        max_length = 255,
+        default = "undefined folder"
     )
 
-    def folder_name(self):
-        return self.person.id
+    max_space = models.IntegerField(
+        null=True,
+        blank=True,
+    )
+
+    content_size = models.IntegerField(default=0)
+
+
+    parent = models.ForeignKey(
+        "self",
+        null=True,
+        default=None,
+        blank=True,
+        related_name='folders',
+        on_delete=models.CASCADE,
+    )
+
+    root = models.ForeignKey(
+        'self',
+        null = True,
+        blank=True,
+        related_name = 'all_folders',
+        on_delete=models.CASCADE,
+    )
+
+
+    starred = models.BooleanField(  default=False)
+    
+    permission = models.CharField( max_length=10,choices=constants.PERMISSIONS, default = "r_o")
+
+    @property
+    def path(self):
+        if self.root:
+            return self.person.user.username
+        return os.path.join(self.parent.path, self.name)
+
+    def save(self, *args, **kwargs):
+        if not self.name:
+            self.name = self.person.user.username
+        super().save(*args, **kwargs)
+
 
     def __str__(self):
         """
@@ -42,7 +86,7 @@ class Folder(Model):
         """
 
         person = self.person
-        return f'{person}'
+        return f'{person} {self.name}'
 
 
 class File(Model):
