@@ -12,6 +12,7 @@ from django_filemanager import constants
 
 BASE_URL = '/api/django_filemanager/media_files/'
 
+
 personal_storage = FileSystemStorage(
     location=settings.PERSONAL_ROOT,
     base_url=BASE_URL,
@@ -25,7 +26,7 @@ class Folder(Model):
     
 
 
-    person = models.OneToOneField(
+    person = models.ForeignKey(
         to=swapper.get_model_name('kernel', 'Person'),
         related_name='folder_user',
         on_delete=models.CASCADE,
