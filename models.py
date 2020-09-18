@@ -23,8 +23,6 @@ class Folder(Model):
     """
     This model holds information about a folder owned by a person
     """
-    
-
 
     person = models.ForeignKey(
         to=swapper.get_model_name('kernel', 'Person'),
@@ -33,8 +31,8 @@ class Folder(Model):
     )
 
     name = models.CharField(
-        max_length = 255,
-        default = "undefined folder"
+        max_length=255,
+        default="undefined folder"
     )
 
     max_space = models.IntegerField(
@@ -43,7 +41,6 @@ class Folder(Model):
     )
 
     content_size = models.IntegerField(default=0)
-
 
     parent = models.ForeignKey(
         "self",
@@ -56,16 +53,16 @@ class Folder(Model):
 
     root = models.ForeignKey(
         'self',
-        null = True,
+        null=True,
         blank=True,
-        related_name = 'all_folders',
+        related_name='all_folders',
         on_delete=models.CASCADE,
     )
 
+    starred = models.BooleanField(default=False)
 
-    starred = models.BooleanField(  default=False)
-    
-    permission = models.CharField( max_length=10,choices=constants.PERMISSIONS, default = "r_o")
+    permission = models.CharField(
+        max_length=10, choices=constants.PERMISSIONS, default="r_o")
 
     @property
     def path(self):
@@ -77,7 +74,6 @@ class Folder(Model):
         if not self.name:
             self.name = self.person.user.username
         super().save(*args, **kwargs)
-
 
     def __str__(self):
         """
@@ -124,7 +120,8 @@ class File(Model):
         default=False,
     )
 
-    permission = models.CharField( max_length=10,choices=constants.PERMISSIONS, default = "r_o")
+    permission = models.CharField(
+        max_length=10, choices=constants.PERMISSIONS, default="r_o")
 
     def belongs_to(self):
         return self.folder.person
@@ -139,6 +136,6 @@ class File(Model):
         """
 
         person = self.folder.person
-        file_name = self.file_name
+        name = self.name
 
-        return f'{file_name}: {person}'
+        return f'{name}: {person}'
