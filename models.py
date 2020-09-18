@@ -94,12 +94,28 @@ class File(Model):
     This Model holds information about a file
     """
 
+    name = models.CharField(
+        max_length=50,
+        default="undedfined file",
+    )
+
+    size = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+    )
+
+    person = models.ForeignKey(
+        to=swapper.get_model_name('kernel', 'Person'),
+        related_name='file_user',
+        on_delete=models.CASCADE,
+    )
+
     upload = models.FileField(
         upload_to=UploadTo('', '', file_manager=True),
         storage=personal_storage,
     )
 
-    folder = models.ForeignKey(
+    parent_folder = models.ForeignKey(
         to=Folder,
         on_delete=models.CASCADE,
     )
@@ -108,9 +124,7 @@ class File(Model):
         default=False,
     )
 
-    file_name = models.CharField(
-        max_length=255,
-    )
+    permission = models.CharField( max_length=10,choices=constants.PERMISSIONS, default = "r_o")
 
     def belongs_to(self):
         return self.folder.person
