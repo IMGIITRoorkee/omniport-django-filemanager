@@ -23,8 +23,6 @@ class Folder(Model):
     """
     This model holds information about a folder owned by a person
     """
-    
-
 
     person = models.ForeignKey(
         to=swapper.get_model_name('kernel', 'Person'),
@@ -32,23 +30,20 @@ class Folder(Model):
         on_delete=models.CASCADE,
     )
 
-    name = models.CharField(
-        max_length = 255,
-        default = "undefined folder"
-    )
-
-    max_space = models.IntegerField(
-        null=True,
+    folder_name = models.CharField(
+        max_length=255,
         blank=True,
     )
 
-    content_size = models.IntegerField(default=0)
+    max_space = models.IntegerField(
+        blank=True,
+    )
 
+    content_size = models.IntegerField(blank=True)
 
     parent = models.ForeignKey(
         "self",
         null=True,
-        default=None,
         blank=True,
         related_name='folders',
         on_delete=models.CASCADE,
@@ -56,28 +51,35 @@ class Folder(Model):
 
     root = models.ForeignKey(
         'self',
-        null = True,
+        null=True,
         blank=True,
-        related_name = 'all_folders',
+        related_name='all_folders',
         on_delete=models.CASCADE,
     )
 
+    starred = models.BooleanField(default=False)
 
-    starred = models.BooleanField(  default=False)
-    
-    permission = models.CharField( max_length=10,choices=constants.PERMISSIONS, default = "r_o")
+    permission = models.CharField(
+        max_length=10, choices=constants.PERMISSIONS, default="r_o")
+
+    @property
+    def available_space(self):
+        """Gives available space"""
+        if self.root:
+            return self.root.max_space - self.root.content_size
+        else:
+            return self.max_space - self.content_size
 
     @property
     def path(self):
         if self.root:
             return self.person.user.username
-        return os.path.join(self.parent.path, self.name)
+        return os.path.join(self.parent.path, self.folder_name)
 
     def save(self, *args, **kwargs):
-        if not self.name:
-            self.name = self.person.user.username
+        if not self.folder_name:
+            self.folder_name = self.person.user.username
         super().save(*args, **kwargs)
-
 
     def __str__(self):
         """
@@ -86,7 +88,7 @@ class Folder(Model):
         """
 
         person = self.person
-        return f'{person} {self.name}'
+        return f'{person} {self.folder_name}'
 
 
 class File(Model):
