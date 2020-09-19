@@ -95,15 +95,11 @@ class File(Model):
         default="undedfined file",
     )
 
-    size = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-    )
+    size = models.IntegerField(null=False)
 
-    person = models.ForeignKey(
-        to=swapper.get_model_name('kernel', 'Person'),
-        related_name='file_user',
-        on_delete=models.CASCADE,
+    extension = models.CharField(
+        max_length=10,
+        default="undefined"
     )
 
     upload = models.FileField(
@@ -111,7 +107,7 @@ class File(Model):
         storage=personal_storage,
     )
 
-    parent_folder = models.ForeignKey(
+    folder = models.ForeignKey(
         to=Folder,
         on_delete=models.CASCADE,
     )
