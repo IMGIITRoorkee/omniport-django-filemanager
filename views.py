@@ -1,13 +1,15 @@
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework import status
 from django.http import HttpResponse
 
 from django_filemanager.serializers import *
 from django_filemanager.models import *
+from rest_framework.decorators import action
 
 
-class FolderViewSet(viewsets.ReadOnlyModelViewSet):
+class FolderViewSet(viewsets.ModelViewSet):
     """
     This view gets all the files in a folder corresponding
     to the logged in user
@@ -19,6 +21,18 @@ class FolderViewSet(viewsets.ReadOnlyModelViewSet):
         person = self.request.person
         queryset = Folder.objects.filter(person=person)
         return queryset
+
+    @action(detail=False, methods=['get'])
+    def get_root(self, request):
+        person = self.request.person
+        try:
+            folder, _ = Folder.objects.get_or_create(
+                person=person, root=None, parent=None)
+        except Folder.MultipleObjectsReturned:
+            return Response("more than one root folder found for same person", status=status.HTTP_409_CONFLICT)
+        print(folder)
+        serializer = self.serializer_class(folder)
+        return Response(serializer.data)
 
 
 class FileAccessView(APIView):
@@ -38,8 +52,8 @@ class FileAccessView(APIView):
 
         if File.objects.filter(upload=url).exists():
             file_object = File.objects.get(upload=url)
-            
-            if (file_object.belongs_to()==person) or file_object.is_public:
+
+            if (file_object.belongs_to() == person) or file_object.is_public:
                 response = HttpResponse(status=200)
                 response['Content-Type'] = ''
                 response['X-Accel-Redirect'] = '/personal/{}'.format(url)
@@ -59,7 +73,7 @@ class FileView(viewsets.ModelViewSet):
             return FileCreateSerializer
         elif self.action in ['update', 'destroy']:
             return FileUpdateSerializer
-    
+
     def get_queryset(self):
         person = self.request.person
         queryset = File.objects.filter(folder__person=person)
