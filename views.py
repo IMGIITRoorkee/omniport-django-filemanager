@@ -5,7 +5,11 @@ from rest_framework import status
 from django.http import HttpResponse
 
 from django_filemanager.serializers import *
+<<<<<<< HEAD
 from django_filemanager.models import Folder,File
+=======
+from django_filemanager.models import *
+>>>>>>> - Make Basic Views and Serializer for Folder Model
 from rest_framework.decorators import action
 
 
@@ -26,11 +30,16 @@ class FolderViewSet(viewsets.ModelViewSet):
     def get_root(self, request):
         person = self.request.person
         try:
+<<<<<<< HEAD
             folder = Folder.objects.get(
                 person=person, root=None, parent=None)
         except Folder.DoesNotExist:
             folder = Folder(person=person,root=None,parent=None,content_size=0,max_space=1024)
             folder.save()
+=======
+            folder, _ = Folder.objects.get_or_create(
+                person=person, root=None, parent=None)
+>>>>>>> - Make Basic Views and Serializer for Folder Model
         except Folder.MultipleObjectsReturned:
             return Response("more than one root folder found for same person", status=status.HTTP_409_CONFLICT)
         print(folder)
