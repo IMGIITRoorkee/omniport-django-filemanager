@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from formula_one.serializers.base import ModelSerializer
-from django_filemanager.models import *
+from django_filemanager.models import Folder,File
 
 
 class FileSerializer(ModelSerializer):
@@ -55,8 +55,22 @@ class FolderSerializer(ModelSerializer):
     Serializer for Folder object
     """
 
-    files = FileSerializer(many=True, source='file_set')
+    # files = FileSerializer(many=True, source='file_set',read_only=True)
 
     class Meta:
         model = Folder
-        fields = ('files', 'folder_name')
+        fields = '__all__'
+        read_only_fields = ['person', 'max_space', 'content_size']
+
+    def create(self, validated_data):
+        """
+        Create a new Folder instance from the validated data, adding person
+        :param validated_data: the validated data passed to the serializer
+        :return: the newly-created Folder instance
+        """
+
+        person = self.context.get('request').person
+        validated_data['person'] = person
+        application = super().create(validated_data)
+
+        return application
