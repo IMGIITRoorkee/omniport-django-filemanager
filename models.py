@@ -96,6 +96,18 @@ class File(Model):
     This Model holds information about a file
     """
 
+    name = models.CharField(
+        max_length=50,
+        default="undedfined file",
+    )
+
+    size = models.IntegerField(null=False)
+
+    extension = models.CharField(
+        max_length=10,
+        default="undefined"
+    )
+
     upload = models.FileField(
         upload_to=UploadTo('', '', file_manager=True),
         storage=personal_storage,
@@ -110,9 +122,8 @@ class File(Model):
         default=False,
     )
 
-    file_name = models.CharField(
-        max_length=255,
-    )
+    permission = models.CharField(
+        max_length=10, choices=constants.PERMISSIONS, default="r_o")
 
     def belongs_to(self):
         return self.folder.person
@@ -127,6 +138,6 @@ class File(Model):
         """
 
         person = self.folder.person
-        file_name = self.file_name
+        name = self.name
 
-        return f'{file_name}: {person}'
+        return f'{name}: {person}'
