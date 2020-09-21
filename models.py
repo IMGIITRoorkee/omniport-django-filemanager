@@ -36,10 +36,10 @@ class Folder(Model):
     )
 
     max_space = models.IntegerField(
-        blank=True,
+        null=True,
     )
 
-    content_size = models.IntegerField(blank=True)
+    content_size = models.IntegerField(null=True)
 
     parent = models.ForeignKey(
         "self",
