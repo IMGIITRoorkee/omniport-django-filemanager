@@ -5,7 +5,7 @@ from rest_framework import status
 from django.http import HttpResponse
 
 from django_filemanager.serializers import *
-from django_filemanager.models import *
+from django_filemanager.models import Folder,File
 from rest_framework.decorators import action
 
 
@@ -26,8 +26,11 @@ class FolderViewSet(viewsets.ModelViewSet):
     def get_root(self, request):
         person = self.request.person
         try:
-            folder, _ = Folder.objects.get_or_create(
+            folder = Folder.objects.get(
                 person=person, root=None, parent=None)
+        except Folder.DoesNotExist:
+            folder = Folder(person=person,root=None,parent=None,content_size=0,max_space=1024)
+            folder.save()
         except Folder.MultipleObjectsReturned:
             return Response("more than one root folder found for same person", status=status.HTTP_409_CONFLICT)
         print(folder)
