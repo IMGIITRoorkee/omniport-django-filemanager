@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from formula_one.serializers.base import ModelSerializer
-from django_filemanager.models import Folder,File
+from django_filemanager.models import Folder, File
 
 
 class FileSerializer(ModelSerializer):
@@ -50,12 +50,22 @@ class FileUpdateSerializer(ModelSerializer):
         fields = ('file_name', 'is_public', 'id', 'datetime_modified')
 
 
+class subFolderSerializer(ModelSerializer):
+    class Meta:
+        model = Folder
+        fields = '__all__'
+
+
 class FolderSerializer(ModelSerializer):
     """
     Serializer for Folder object
     """
 
-    # files = FileSerializer(many=True, source='file_set',read_only=True)
+    files = FileSerializer(many=True, source='file_set', read_only=True)
+    folders = subFolderSerializer(read_only=True, many=True)
+
+    # def get_folders(self, obj):
+    #     return obj.folders.all()
 
     class Meta:
         model = Folder
