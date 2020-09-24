@@ -7,7 +7,7 @@ app_name = 'django_filemanager'
 router = routers.SimpleRouter()
 
 router.register(r'folder', FolderViewSet, 'Folder')
-router.register(r'filemanager', FileManagerViewSet, 'Folder')
+router.register(r'filemanager', FileManagerViewSet, 'FileManager')
 
 file_view = FileView.as_view({
     'post': 'create',
