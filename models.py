@@ -96,7 +96,7 @@ class File(Model):
     This Model holds information about a file
     """
 
-    name = models.CharField(
+    file_name = models.CharField(
         max_length=50,
         default="undedfined file",
     )
@@ -138,6 +138,23 @@ class File(Model):
         """
 
         person = self.folder.person
-        name = self.name
+        file_name = self.file_name
 
-        return f'{name}: {person}'
+        return f'{file_name}: {person}'
+
+# class FileManager(Model):
+#     """
+#     This model holds different instances of filemanager
+#     """
+
+#     filemanager_name = models.CharField(
+#         max_length=50,
+#         default="undedfined filemanager",
+#     )
+
+#     acces_roles = models.CharField(
+#         max_length=50, choices=settings.ROLES)
+
+#     folder_name_template = models.CharField(
+#         max_length=200, null=True
+#     )
