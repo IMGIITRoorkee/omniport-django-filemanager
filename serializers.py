@@ -13,8 +13,8 @@ class FileSerializer(ModelSerializer):
 
     class Meta:
         model = File
-        fields = ('id', 'file_name', 'is_public',
-                  'upload', 'path', 'datetime_modified')
+        fields = '__all__'
+        read_only_fields = ['extension', 'size']
 
     def get_path(self, obj):
         return obj.file_relative_path()
@@ -70,7 +70,7 @@ class FolderSerializer(ModelSerializer):
     class Meta:
         model = Folder
         fields = '__all__'
-        read_only_fields = ['person', 'max_space', 'content_size']
+        read_only_fields = ['person', 'max_space', 'content_size','files']
 
     def create(self, validated_data):
         """
