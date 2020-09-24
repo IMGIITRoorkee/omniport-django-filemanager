@@ -5,7 +5,7 @@ from rest_framework import status
 from django.http import HttpResponse
 
 from django_filemanager.serializers import *
-from django_filemanager.models import Folder,File
+from django_filemanager.models import Folder, File, FileManager
 from rest_framework.decorators import action
 
 
@@ -87,3 +87,11 @@ class FileView(viewsets.ModelViewSet):
         person = self.request.person
         queryset = File.objects.filter(folder__person=person)
         return queryset
+
+class FileManagerViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    This view allows user to view all existing filemanager instances
+    """
+    
+    serializer_class = FileManagerSerializer
+    queryset = FileManager.objects.all()
