@@ -70,7 +70,7 @@ class FolderSerializer(ModelSerializer):
     class Meta:
         model = Folder
         fields = '__all__'
-        read_only_fields = ['person', 'max_space', 'content_size','files']
+        read_only_fields = ['person', 'max_space', 'content_size']
 
     def create(self, validated_data):
         """
