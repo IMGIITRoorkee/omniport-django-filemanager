@@ -18,11 +18,39 @@ personal_storage = FileSystemStorage(
     base_url=BASE_URL,
 )
 
+class FileManager(Model):
+    """
+    This model holds different instances of filemanager
+    """
+
+    filemanager_name = models.CharField(
+        max_length=50,
+        default="undedfined filemanager",
+    )
+
+    folder_name_template = models.CharField(
+        max_length=200, null=True
+    )
+
+    def __str__(self):
+        """
+        Return the string representation of the model
+        :return: the string representation of the model
+        """
+
+        filemanager_name = self.filemanager_name
+
+        return f'{filemanager_name}'
 
 class Folder(Model):
     """
     This model holds information about a folder owned by a person
     """
+
+    filemanager = models.ForeignKey(
+        to=FileManager,
+        on_delete=models.CASCADE,
+    )
 
     person = models.ForeignKey(
         to=swapper.get_model_name('kernel', 'Person'),
@@ -141,20 +169,3 @@ class File(Model):
         file_name = self.file_name
 
         return f'{file_name}: {person}'
-
-# class FileManager(Model):
-#     """
-#     This model holds different instances of filemanager
-#     """
-
-#     filemanager_name = models.CharField(
-#         max_length=50,
-#         default="undedfined filemanager",
-#     )
-
-#     acces_roles = models.CharField(
-#         max_length=50, choices=settings.ROLES)
-
-#     folder_name_template = models.CharField(
-#         max_length=200, null=True
-#     )
