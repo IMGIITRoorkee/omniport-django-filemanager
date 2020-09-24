@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from formula_one.serializers.base import ModelSerializer
-from django_filemanager.models import Folder, File
+from django_filemanager.models import Folder, File, FileManager
 
 
 class FileSerializer(ModelSerializer):
@@ -84,3 +84,13 @@ class FolderSerializer(ModelSerializer):
         application = super().create(validated_data)
 
         return application
+
+class FileManagerSerializer(ModelSerializer):
+    """
+    Serializer for filemanager object
+    """
+
+    class Meta:
+        model = FileManager
+        fields = '__all__'
+        read_only_fields = ['filemanager_name',]
