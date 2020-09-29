@@ -4,6 +4,7 @@ import os
 from django.db import models
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
+from django.contrib.postgres import fields
 
 from formula_one.models.base import Model
 from formula_one.utils.upload_to import UploadTo
@@ -30,6 +31,13 @@ class FileManager(Model):
 
     folder_name_template = models.CharField(
         max_length=200, null=True
+    )
+
+    filemanager_access_roles = fields.ArrayField(
+        models.CharField(
+            max_length=50,
+            choices=zip(settings.ROLES,settings.ROLES),
+        )
     )
 
     def __str__(self):
