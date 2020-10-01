@@ -161,6 +161,8 @@ class File(Model):
     permission = models.CharField(
         max_length=10, choices=constants.PERMISSIONS, default="r_o")
 
+    starred = models.BooleanField(default=False)
+
     def belongs_to(self):
         return self.folder.person
 
