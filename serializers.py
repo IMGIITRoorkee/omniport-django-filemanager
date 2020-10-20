@@ -85,6 +85,12 @@ class FolderSerializer(ModelSerializer):
 
         return application
 
+class rootFolderSerializer(ModelSerializer):
+    filemanagername = serializers.ReadOnlyField()
+    class Meta:
+        model = Folder
+        fields = ['id','filemanagername', 'content_size', 'max_space']
+
 class FileManagerSerializer(ModelSerializer):
     """
     Serializer for filemanager object
