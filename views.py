@@ -43,6 +43,17 @@ class FolderViewSet(viewsets.ModelViewSet):
         serializer = self.serializer_class(folder)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['get'])
+    def get_root_folders(self,request):
+        person = self.request.person
+        folders = Folder.objects.filter(
+            person=person, parent=None
+        )
+        serializer = rootFolderSerializer(
+            folders, many=True
+        )
+        return Response(serializer.data)
+
 
 class FileAccessView(APIView):
     """
