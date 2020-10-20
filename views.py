@@ -24,18 +24,27 @@ class FolderViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def get_root(self, request):
+        filemanager_name = request.query_params.get('filemanager', None)
+        print(filemanager_name)
+        try:
+            filemanager = FileManager.objects.get(
+                filemanager_name=filemanager_name)
+        except:
+            return Response("Filemanager instance with given name doesnot exists", status=status.HTTP_400_BAD_REQUEST)
         person = self.request.person
         try:
             folder = Folder.objects.get(
-                person=person, root=None, parent=None)
+                person=person, root=None, parent=None, filemanager=filemanager)
         except Folder.DoesNotExist:
-            folder = Folder(person=person,root=None,parent=None,content_size=0,max_space=1024)
+            folder = Folder(person=person, root=None,
+                            parent=None, content_size=0, max_space=1024,filemanager=filemanager)
             folder.save()
 
             folder = Folder.objects.get(
                 person=person, root=None, parent=None)
         except Folder.DoesNotExist:
-            folder = Folder(person=person,root=None,parent=None,content_size=0,max_space=1024)
+            folder = Folder(person=person, root=None,
+                            parent=None, content_size=0, max_space=1024)
             folder.save()
         except Folder.MultipleObjectsReturned:
             return Response("more than one root folder found for same person", status=status.HTTP_409_CONFLICT)
@@ -99,10 +108,11 @@ class FileView(viewsets.ModelViewSet):
         queryset = File.objects.filter(folder__person=person)
         return queryset
 
+
 class FileManagerViewSet(viewsets.ReadOnlyModelViewSet):
     """
     This view allows user to view all existing filemanager instances
     """
-    
+
     serializer_class = FileManagerSerializer
     queryset = FileManager.objects.all()
