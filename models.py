@@ -126,6 +126,9 @@ class Folder(Model):
         person = self.person
         return f'{person} {self.folder_name}'
 
+    def filemanagername(self):
+        return self.filemanager.filemanager_name
+
 
 class File(Model):
     """
