@@ -96,13 +96,7 @@ class FileView(viewsets.ModelViewSet):
     """
     This view allows a user to upload, edit and delete a file
     """
-
-    def get_serializer_class(self):
-        if self.action == 'create':
-            return FileCreateSerializer
-        elif self.action in ['update', 'destroy']:
-            return FileUpdateSerializer
-
+    serializer_class = FileSerializer
     def get_queryset(self):
         person = self.request.person
         queryset = File.objects.filter(folder__person=person)
