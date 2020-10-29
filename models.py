@@ -143,7 +143,7 @@ class File(Model):
     size = models.IntegerField(null=False)
 
     extension = models.CharField(
-        max_length=10,
+        max_length=50,
         default="undefined"
     )
 
