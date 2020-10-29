@@ -8,23 +8,9 @@ router = routers.SimpleRouter()
 
 router.register(r'folder', FolderViewSet, 'Folder')
 router.register(r'filemanager', FileManagerViewSet, 'FileManager')
-
-file_view = FileView.as_view({
-    'post': 'create',
-})
-
-file_edit = FileView.as_view({
-    'put': 'update',
-})
-
-file_delete = FileView.as_view({
-    'delete': 'destroy',
-})
+router.register(r'files', FileView, 'file')
 
 urlpatterns = [
     url(r'media_files/', FileAccessView.as_view()),
-    url(r'edit_file/(?P<pk>[0-9]+)/$', file_edit),
-    url(r'delete_file/(?P<pk>[0-9]+)/$', file_delete),
-    url(r'upload/', file_view)
 ]
 urlpatterns += router.urls
