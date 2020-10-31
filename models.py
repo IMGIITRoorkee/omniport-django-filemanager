@@ -11,7 +11,7 @@ from formula_one.utils.upload_to import UploadTo
 
 from django_filemanager import constants
 
-BASE_URL = '/api/django_filemanager/media_files/'
+BASE_URL = '/api/django_filemanager/media/'
 
 
 personal_storage = FileSystemStorage(
@@ -40,6 +40,12 @@ class FileManager(Model):
         )
     )
 
+    logo = models.ImageField(
+        upload_to=UploadTo('', '', file_manager=True),
+        storage=personal_storage,
+        null=True
+    )
+
     def __str__(self):
         """
         Return the string representation of the model
@@ -64,6 +70,12 @@ class Folder(Model):
         to=swapper.get_model_name('kernel', 'Person'),
         related_name='folder_user',
         on_delete=models.CASCADE,
+    )
+
+    shared_users = models.ManyToManyField(
+        to=swapper.get_model_name('kernel', 'Person'),
+        related_name='folder_shared_users',
+        null=True
     )
 
     folder_name = models.CharField(
@@ -94,6 +106,10 @@ class Folder(Model):
     )
 
     starred = models.BooleanField(default=False)
+
+    request_space_pending = models.BooleanField(default=False)
+
+    additional_space = models.IntegerField(default=0)
 
     permission = models.CharField(
         max_length=10, choices=constants.PERMISSIONS, default="r_o")
@@ -152,6 +168,12 @@ class File(Model):
         storage=personal_storage,
     )
 
+    shared_users = models.ManyToManyField(
+        to=swapper.get_model_name('kernel', 'Person'),
+        related_name='file_shared_users',
+        null=True
+    )
+    
     folder = models.ForeignKey(
         to=Folder,
         on_delete=models.CASCADE,
