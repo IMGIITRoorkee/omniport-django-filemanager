@@ -14,7 +14,7 @@ class FileSerializer(ModelSerializer):
     class Meta:
         model = File
         fields = '__all__'
-        read_only_fields = []
+        read_only_fields = ['shared_users']
 
     def get_path(self, obj):
         return obj.file_relative_path()
@@ -60,7 +60,7 @@ class rootFolderSerializer(ModelSerializer):
     filemanagername = serializers.ReadOnlyField()
     class Meta:
         model = Folder
-        fields = ['id','filemanagername', 'content_size', 'max_space']
+        fields = ['id','filemanagername', 'content_size', 'max_space','request_space_pending','additional_space',]
 
 class FileManagerSerializer(ModelSerializer):
     """
