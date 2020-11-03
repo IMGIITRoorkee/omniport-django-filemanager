@@ -25,7 +25,6 @@ class FolderViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def get_root(self, request):
         filemanager_name = request.query_params.get('filemanager', None)
-        print(filemanager_name)
         try:
             filemanager = FileManager.objects.get(
                 filemanager_name=filemanager_name)
@@ -37,7 +36,7 @@ class FolderViewSet(viewsets.ModelViewSet):
                 person=person, root=None, parent=None, filemanager=filemanager)
         except Folder.DoesNotExist:
             folder = Folder(person=person, root=None,
-                            parent=None, content_size=0, max_space=1024,filemanager=filemanager)
+                            parent=None, content_size=0, max_space=1024, filemanager=filemanager)
             folder.save()
 
             folder = Folder.objects.get(
@@ -48,12 +47,11 @@ class FolderViewSet(viewsets.ModelViewSet):
             folder.save()
         except Folder.MultipleObjectsReturned:
             return Response("more than one root folder found for same person", status=status.HTTP_409_CONFLICT)
-        print(folder)
         serializer = self.serializer_class(folder)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
-    def get_root_folders(self,request):
+    def get_root_folders(self, request):
         person = self.request.person
         folders = Folder.objects.filter(
             person=person, parent=None
@@ -97,10 +95,43 @@ class FileView(viewsets.ModelViewSet):
     This view allows a user to upload, edit and delete a file
     """
     serializer_class = FileSerializer
+
     def get_queryset(self):
         person = self.request.person
         queryset = File.objects.filter(folder__person=person)
         return queryset
+
+    def create(self, request, *args, **kwargs):
+        parent_folder = Folder.objects.get(pk=request.data.get("folder"))
+        if not parent_folder.root == None:
+            root_folder = parent_folder.root
+        else:
+            root_folder = parent_folder
+        updated_size = root_folder.content_size + \
+            int(request.data.get("size"))
+        if updated_size > root_folder.max_space:
+            return HttpResponse("Space limit exceeded", status=status.HTTP_400_BAD_REQUEST)
+        root_folder.content_size = updated_size
+        root_folder.save()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        parent_folder = instance.folder
+        if not parent_folder.root == None:
+            root_folder = parent_folder.root
+        else:
+            root_folder = parent_folder
+        updated_size = root_folder.content_size - \
+            instance.size
+        root_folder.content_size = updated_size
+        root_folder.save()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class FileManagerViewSet(viewsets.ReadOnlyModelViewSet):
