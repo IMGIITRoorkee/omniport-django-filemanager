@@ -19,6 +19,7 @@ personal_storage = FileSystemStorage(
     base_url=BASE_URL,
 )
 
+
 class FileManager(Model):
     """
     This model holds different instances of filemanager
@@ -36,12 +37,12 @@ class FileManager(Model):
     filemanager_access_roles = fields.ArrayField(
         models.CharField(
             max_length=50,
-            choices=zip(settings.ROLES,settings.ROLES),
+            choices=zip(settings.ROLES, settings.ROLES),
         )
     )
 
     logo = models.ImageField(
-        upload_to=UploadTo('', '', file_manager=True),
+        upload_to=UploadTo('', '', file_manager=False),
         storage=personal_storage,
         null=True
     )
@@ -55,6 +56,7 @@ class FileManager(Model):
         filemanager_name = self.filemanager_name
 
         return f'{filemanager_name}'
+
 
 class Folder(Model):
     """
@@ -87,7 +89,7 @@ class Folder(Model):
         null=True,
     )
 
-    content_size = models.IntegerField(null=True)
+    content_size = models.IntegerField(default=0)
 
     parent = models.ForeignKey(
         "self",
@@ -152,7 +154,7 @@ class File(Model):
     """
 
     file_name = models.CharField(
-        max_length=50,
+        max_length=500,
         default="undedfined file",
     )
 
@@ -173,7 +175,7 @@ class File(Model):
         related_name='file_shared_users',
         null=True
     )
-    
+
     folder = models.ForeignKey(
         to=Folder,
         on_delete=models.CASCADE,
