@@ -1,12 +1,15 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
+import json
 
 from django_filemanager.serializers import *
 from django_filemanager.models import Folder, File, FileManager
 from rest_framework.decorators import action
+from django_filemanager.permissions import HasItemPermissions
+from django_filemanager.constants import SHARED
 
 
 class FolderViewSet(viewsets.ModelViewSet):
@@ -57,6 +60,17 @@ class FolderViewSet(viewsets.ModelViewSet):
             person=person, parent=None
         )
         serializer = rootFolderSerializer(
+            folders, many=True
+        )
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def shared_with_me(self, request):
+        person = self.request.person
+        folders = Folder.objects.filter(
+            shared_users = person
+        )
+        serializer = FolderSerializer(
             folders, many=True
         )
         return Response(serializer.data)
@@ -133,6 +147,62 @@ class FileView(viewsets.ModelViewSet):
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(detail=False, methods=['get'])
+    def shared_with_me(self, request):
+        person = self.request.person
+        files = File.objects.filter(
+            shared_users = person
+        )
+        serializer = FileSerializer(
+            files, many=True
+        )
+        print(serializer)
+        return Response(serializer.data)
+
+class AllSharedItems(APIView):
+    
+    def get(self,request,*args, **kwargs):
+        person = self.request.person
+        files_shared = File.objects.filter(
+            shared_users = person
+        )
+        files = FileSerializer(
+            files_shared, many=True
+        )
+        folders_shared = Folder.objects.filter(
+            shared_users = person
+        )
+        folders = FolderSerializer(
+            folders_shared, many=True
+        )
+        serializer = {
+            'files' : files.data,
+            'folders' : folders.data,
+            'type' : SHARED
+        }
+        return JsonResponse(serializer)
+
+class ItemSharedView(APIView):
+    """
+    This view allows user to view any of the folder/file which comes under shared folders with the requesting user
+    """
+
+    permission_classes = [HasItemPermissions,]
+
+    def get(self, request,*args,**kwargs):
+        item_id = kwargs['id']
+        # print(kwargs)
+        # print(path)
+        if kwargs['item2']=='folder':
+            folder = Folder.objects.get(id=item_id)
+            serializer = FolderSerializer(folder)
+            return Response(serializer.data)
+        elif kwargs['item2']=='file':
+            file = File.objects.get(id=item_id)
+            serializer = FileSerializer(file)
+            return Response(serializer.data)
+        else:
+            return Response("requested wrong item", status=404)
 
 class FileManagerViewSet(viewsets.ReadOnlyModelViewSet):
     """
