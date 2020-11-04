@@ -1,6 +1,7 @@
 import swapper
 import os
 
+import uuid
 from django.db import models
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
@@ -62,6 +63,8 @@ class Folder(Model):
     """
     This model holds information about a folder owned by a person
     """
+    
+    sharing_id = models.UUIDField(default=uuid.uuid4, editable=False, db_index=True)
 
     filemanager = models.ForeignKey(
         to=FileManager,
@@ -124,6 +127,10 @@ class Folder(Model):
         else:
             return self.max_space - self.content_size
 
+    def filemanagerlogo(self):
+        if self.filemanager.logo:
+            return self.filemanager.logo
+
     @property
     def path(self):
         if self.root:
@@ -152,6 +159,8 @@ class File(Model):
     """
     This Model holds information about a file
     """
+
+    sharing_id = models.UUIDField(default=uuid.uuid4, editable=False, db_index=True)
 
     file_name = models.CharField(
         max_length=500,
