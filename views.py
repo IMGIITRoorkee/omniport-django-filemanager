@@ -4,10 +4,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.http import HttpResponse, JsonResponse
 import json
-
-from django_filemanager.serializers import *
-from django_filemanager.models import Folder, File, FileManager
 from rest_framework.decorators import action
+
+from django_filemanager.serializers import FileSerializer, subFolderSerializer, FolderSerializer, rootFolderSerializer, FileManagerSerializer
+from django_filemanager.constants import ACCEPT, REJECT, REQUEST_STATUS_MAP
+from django_filemanager.models import Folder, File, FileManager
 from django_filemanager.permissions import HasItemPermissions
 from django_filemanager.constants import SHARED
 
@@ -68,12 +69,72 @@ class FolderViewSet(viewsets.ModelViewSet):
     def shared_with_me(self, request):
         person = self.request.person
         folders = Folder.objects.filter(
-            shared_users = person
+            shared_users=person
         )
         serializer = FolderSerializer(
             folders, many=True
         )
         return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def generate_data_request(self, request, pk):
+        try:
+            folder = Folder.objects.get(pk=pk)
+        except Folder.DoesNotExist:
+            return HttpResponse("Folder Not available", status=status.HTTP_400_BAD_REQUEST)
+
+        additional_space = request.data.get("additional_space")
+        if additional_space == None:
+            return HttpResponse("additional_space keyword required", status=status.HTTP_400_BAD_REQUEST)
+        folder.additional_space = additional_space
+        folder.data_request_status = '1'
+        folder.save()
+        serializer = rootFolderSerializer(folder)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def get_data_request(self, request):
+        folders = Folder.objects.filter(
+            root=None,  parent=None
+        ).exclude(data_request_status=REQUEST_STATUS_MAP['not_made'])
+        params = request.GET
+        if "data_request_status" in params.keys():
+            status = params['data_request_status']
+            if status in REQUEST_STATUS_MAP.keys():
+                folders = folders.filter(
+                    data_request_status=REQUEST_STATUS_MAP[status])
+        if "data_request_status!" in params.keys():
+            status = params['data_request_status!']
+            if status in REQUEST_STATUS_MAP.keys():
+                folders = folders.exclude(
+                    data_request_status=REQUEST_STATUS_MAP[status])
+
+        serializer = rootFolderSerializer(folders, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], )
+    def handle_request(self, request, pk):
+        try:
+            folder = Folder.objects.get(pk=pk)
+        except Folder.DoesNotExist:
+            return HttpResponse("Folder Not available", status=status.HTTP_400_BAD_REQUEST)
+
+        response = request.data.get("response")
+        if response == None:
+            return HttpResponse("response required", status=status.HTTP_400_BAD_REQUEST)
+        if response == ACCEPT:
+            folder.max_space = folder.max_space + folder.additional_space
+            folder.data_request_status = "2"
+            folder.save()
+            serializer = rootFolderSerializer(folder)
+            return Response(serializer.data)
+        elif response == REJECT:
+            folder.data_request_status = "3"
+            folder.save()
+            serializer = rootFolderSerializer(folder)
+            return Response(serializer.data)
+        else:
+            return HttpResponse("Wrong type of response", status=status.HTTP_400_BAD_REQUEST)
 
 
 class FileAccessView(APIView):
@@ -151,7 +212,7 @@ class FileView(viewsets.ModelViewSet):
     def shared_with_me(self, request):
         person = self.request.person
         files = File.objects.filter(
-            shared_users = person
+            shared_users=person
         )
         serializer = FileSerializer(
             files, many=True
@@ -159,50 +220,53 @@ class FileView(viewsets.ModelViewSet):
         print(serializer)
         return Response(serializer.data)
 
+
 class AllSharedItems(APIView):
-    
-    def get(self,request,*args, **kwargs):
+
+    def get(self, request, *args, **kwargs):
         person = self.request.person
         files_shared = File.objects.filter(
-            shared_users = person
+            shared_users=person
         )
         files = FileSerializer(
             files_shared, many=True
         )
         folders_shared = Folder.objects.filter(
-            shared_users = person
+            shared_users=person
         )
         folders = FolderSerializer(
             folders_shared, many=True
         )
         serializer = {
-            'files' : files.data,
-            'folders' : folders.data,
-            'type' : SHARED
+            'files': files.data,
+            'folders': folders.data,
+            'type': SHARED
         }
         return JsonResponse(serializer)
+
 
 class ItemSharedView(APIView):
     """
     This view allows user to view any of the folder/file which comes under shared folders with the requesting user
     """
 
-    permission_classes = [HasItemPermissions,]
+    permission_classes = [HasItemPermissions, ]
 
-    def get(self, request,*args,**kwargs):
+    def get(self, request, *args, **kwargs):
         item_id = kwargs['id']
         # print(kwargs)
         # print(path)
-        if kwargs['item2']=='folder':
+        if kwargs['item2'] == 'folder':
             folder = Folder.objects.get(id=item_id)
             serializer = FolderSerializer(folder)
             return Response(serializer.data)
-        elif kwargs['item2']=='file':
+        elif kwargs['item2'] == 'file':
             file = File.objects.get(id=item_id)
             serializer = FileSerializer(file)
             return Response(serializer.data)
         else:
             return Response("requested wrong item", status=404)
+
 
 class FileManagerViewSet(viewsets.ReadOnlyModelViewSet):
     """

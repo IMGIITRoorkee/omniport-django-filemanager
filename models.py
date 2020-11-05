@@ -63,8 +63,9 @@ class Folder(Model):
     """
     This model holds information about a folder owned by a person
     """
-    
-    sharing_id = models.UUIDField(default=uuid.uuid4, editable=False, db_index=True)
+
+    sharing_id = models.UUIDField(
+        default=uuid.uuid4, editable=False, db_index=True)
 
     filemanager = models.ForeignKey(
         to=FileManager,
@@ -88,7 +89,7 @@ class Folder(Model):
         blank=True,
     )
 
-    max_space = models.IntegerField(
+    max_space = models.BigIntegerField(
         null=True,
     )
 
@@ -112,9 +113,10 @@ class Folder(Model):
 
     starred = models.BooleanField(default=False)
 
-    request_space_pending = models.BooleanField(default=False)
+    data_request_status = models.CharField(
+        max_length=10, choices=constants.REQUEST_STATUS, default="0")
 
-    additional_space = models.IntegerField(default=0)
+    additional_space = models.BigIntegerField(default=0)
 
     permission = models.CharField(
         max_length=10, choices=constants.PERMISSIONS, default="r_o")
@@ -160,7 +162,8 @@ class File(Model):
     This Model holds information about a file
     """
 
-    sharing_id = models.UUIDField(default=uuid.uuid4, editable=False, db_index=True)
+    sharing_id = models.UUIDField(
+        default=uuid.uuid4, editable=False, db_index=True)
 
     file_name = models.CharField(
         max_length=500,
