@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from formula_one.serializers.base import ModelSerializer
 from django_filemanager.models import Folder, File, FileManager
+from kernel.serializers.person import AvatarSerializer
 
 
 class FileSerializer(ModelSerializer):
@@ -62,11 +63,14 @@ class FolderSerializer(ModelSerializer):
 
 class rootFolderSerializer(ModelSerializer):
     filemanagername = serializers.ReadOnlyField()
+    person = AvatarSerializer(read_only=True)
 
     class Meta:
         model = Folder
         fields = ['id', 'filemanagername', 'content_size',
-                  'max_space', 'request_space_pending', 'additional_space', ]
+                  'max_space', 'data_request_status', 'additional_space', 'person']
+        read_only_fields = ['max_space',
+                            'data_request_status', 'additional_space']
 
 
 class FileManagerSerializer(ModelSerializer):
