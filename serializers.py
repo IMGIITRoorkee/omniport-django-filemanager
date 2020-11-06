@@ -11,6 +11,7 @@ class FileSerializer(ModelSerializer):
     """
 
     path = serializers.SerializerMethodField()
+    shared_users = AvatarSerializer(many=True,read_only=True)
 
     class Meta:
         model = File
@@ -23,6 +24,8 @@ class FileSerializer(ModelSerializer):
 
 class subFolderSerializer(ModelSerializer):
     filemanagername = serializers.ReadOnlyField()
+    person = AvatarSerializer(read_only=True)
+    shared_users = AvatarSerializer(many=True, read_only=True)
 
     class Meta:
         model = Folder
@@ -37,6 +40,8 @@ class FolderSerializer(ModelSerializer):
     files = FileSerializer(many=True, source='file_set', read_only=True)
     folders = subFolderSerializer(read_only=True, many=True)
     filemanagername = serializers.ReadOnlyField()
+    person = AvatarSerializer(read_only=True)
+    shared_users = AvatarSerializer(many=True,read_only=True)
 
     # def get_folders(self, obj):
     #     return obj.folders.all()
@@ -45,7 +50,7 @@ class FolderSerializer(ModelSerializer):
         model = Folder
         fields = '__all__'
         read_only_fields = ['person', 'filemanagername', 'max_space'
-                            'content_size', 'shared_users']
+                            'content_size','shared_users']
 
     def create(self, validated_data):
         """
@@ -53,7 +58,7 @@ class FolderSerializer(ModelSerializer):
         :param validated_data: the validated data passed to the serializer
         :return: the newly-created Folder instance
         """
-
+        print(self.context)
         person = self.context.get('request').person
         validated_data['person'] = person
         application = super().create(validated_data)

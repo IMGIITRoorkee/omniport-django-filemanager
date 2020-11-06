@@ -16,7 +16,7 @@ router.register(r'files', FileView, 'file')
 urlpatterns = [
     url(r'media_files/', FileAccessView.as_view()),
     path(r'shared_item/<str:uuid>/<str:item1>/<int:id>/<str:item2>/', ItemSharedView.as_view(), name='shared_item'),
-    url(r'all_shared_items', AllSharedItems.as_view())
+    path(r'all_shared_items/', AllSharedItems.as_view(), name='all_shared_items')
 ] + static(settings.MEDIA_URL, document_root = settings.PERSONAL_ROOT)
 
 urlpatterns += router.urls

@@ -6,7 +6,8 @@ from django.http import HttpResponse, JsonResponse
 import json
 from rest_framework.decorators import action
 
-from django_filemanager.serializers import FileSerializer, subFolderSerializer, FolderSerializer, rootFolderSerializer, FileManagerSerializer
+from kernel.models import Person
+from django_filemanager.serializers import FileSerializer, subFolderSerializer, FolderSerializer, rootFolderSerializer, FileManagerSerializer 
 from django_filemanager.constants import ACCEPT, REJECT, REQUEST_STATUS_MAP
 from django_filemanager.models import Folder, File, FileManager
 from django_filemanager.permissions import HasItemPermissions
@@ -136,6 +137,35 @@ class FolderViewSet(viewsets.ModelViewSet):
         else:
             return HttpResponse("Wrong type of response", status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=True, methods=['PATCH'], )
+    def update_shared_users(self, request, *args, **kwargs):
+        pk = kwargs['pk']
+        try:
+            folder = Folder.objects.get(pk=pk)
+        except Folder.DoesNotExist:
+            return HttpResponse("Folder Not available", status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            shared_users = request.data.getlist('shared_users')
+            folder.shared_users.clear()
+            folder.save()
+            if len(shared_users)==1:
+                if shared_users[0] !='':
+                    person = Person.objects.get(id=request.data['shared_users'])
+                    folder.shared_users.add(person)
+                    return HttpResponse("Folder shared with the user", status=status.HTTP_200_OK)
+                else:
+                    return HttpResponse("Removed shared users of the folder", status=status.HTTP_200_OK)
+            elif len(shared_users)>1:
+                for user in shared_users:
+                    person = Person.objects.get(id=user)
+                    folder.shared_users.add(person)
+                return HttpResponse("Folder shared with the users", status=status.HTTP_200_OK)
+            else:
+                return HttpResponse("Number of shared users is undefined", status=status.HTTP_200_OK)
+        except:
+            return HttpResponse("Unable to change shared_user", status=status.HTTP_400_BAD_REQUEST)
+
 
 class FileAccessView(APIView):
     """
@@ -220,19 +250,54 @@ class FileView(viewsets.ModelViewSet):
         print(serializer)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['PATCH'], )
+    def update_shared_users(self, request, *args, **kwargs):
+        pk = kwargs['pk']
+        try:
+            file = File.objects.get(pk=pk)
+        except File.DoesNotExist:
+            return HttpResponse("File Not available", status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            shared_users = request.data.getlist('shared_users')
+            file.shared_users.clear()
+            file.save()
+            if len(shared_users)==1:
+                if shared_users[0] !='':
+                    person = Person.objects.get(id=request.data['shared_users'])
+                    file.shared_users.add(person)
+                    return HttpResponse("file shared with the user", status=status.HTTP_200_OK)
+                else:
+                    return HttpResponse("Removed shared users of the file", status=status.HTTP_200_OK)
+            elif len(shared_users)>1:
+                for user in shared_users:
+                    person = Person.objects.get(id=user)
+                    file.shared_users.add(person)
+                return HttpResponse("File shared with the users", status=status.HTTP_200_OK)
+            else:
+                return HttpResponse("Number of shared users is undefined", status=status.HTTP_200_OK)
+        except:
+            return HttpResponse("Unable to change shared_user", status=status.HTTP_400_BAD_REQUEST)
+
 
 class AllSharedItems(APIView):
-
-    def get(self, request, *args, **kwargs):
+    
+    def get(self,request,*args, **kwargs):
+        filemanager_name = request.query_params.get('filemanager', None)
+        try:
+            filemanager = FileManager.objects.get(
+                filemanager_name=filemanager_name)
+        except:
+            return Response("Filemanager instance with given name doesnot exists", status=status.HTTP_400_BAD_REQUEST)
         person = self.request.person
         files_shared = File.objects.filter(
-            shared_users=person
+            folder__filemanager = filemanager).filter(shared_users = person
         )
         files = FileSerializer(
             files_shared, many=True
         )
         folders_shared = Folder.objects.filter(
-            shared_users=person
+            filemanager = filemanager).filter(shared_users = person
         )
         folders = FolderSerializer(
             folders_shared, many=True
@@ -242,7 +307,7 @@ class AllSharedItems(APIView):
             'folders': folders.data,
             'type': SHARED
         }
-        return JsonResponse(serializer)
+        return Response(serializer)
 
 
 class ItemSharedView(APIView):
