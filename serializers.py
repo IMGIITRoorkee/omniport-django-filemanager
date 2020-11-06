@@ -58,7 +58,7 @@ class FolderSerializer(ModelSerializer):
         :param validated_data: the validated data passed to the serializer
         :return: the newly-created Folder instance
         """
-        print(self.context)
+
         person = self.context.get('request').person
         validated_data['person'] = person
         application = super().create(validated_data)
