@@ -81,7 +81,7 @@ class Folder(Model):
     shared_users = models.ManyToManyField(
         to=swapper.get_model_name('kernel', 'Person'),
         related_name='folder_shared_users',
-        null=True
+        blank=True
     )
 
     folder_name = models.CharField(
@@ -185,7 +185,7 @@ class File(Model):
     shared_users = models.ManyToManyField(
         to=swapper.get_model_name('kernel', 'Person'),
         related_name='file_shared_users',
-        null=True
+        blank=True
     )
 
     folder = models.ForeignKey(
@@ -201,6 +201,9 @@ class File(Model):
         max_length=10, choices=constants.PERMISSIONS, default="r_o")
 
     starred = models.BooleanField(default=False)
+
+    def filemanager(self):
+        return self.folder.filemanager
 
     def belongs_to(self):
         return self.folder.person
