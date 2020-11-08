@@ -5,13 +5,14 @@ from rest_framework import status
 from django.http import HttpResponse, JsonResponse
 import json
 from rest_framework.decorators import action
+from django.db.models import Q
 
 from kernel.models import Person
 from django_filemanager.serializers import FileSerializer, subFolderSerializer, FolderSerializer, rootFolderSerializer, FileManagerSerializer 
 from django_filemanager.constants import ACCEPT, REJECT, REQUEST_STATUS_MAP
 from django_filemanager.models import Folder, File, FileManager
 from django_filemanager.permissions import HasItemPermissions
-from django_filemanager.constants import SHARED
+from django_filemanager.constants import SHARED, STARRED
 
 
 class FolderViewSet(viewsets.ModelViewSet):
@@ -305,10 +306,43 @@ class AllSharedItems(APIView):
         serializer = {
             'files': files.data,
             'folders': folders.data,
-            'type': SHARED
+            'type': SHARED,
+            'filemanager': filemanager_name
         }
         return Response(serializer)
 
+class AllStarredItems(APIView):
+    """
+    This view allows user to view all the starred items
+    """
+
+    def get(self,request,*args, **kwargs):
+        filemanager_name = request.query_params.get('filemanager', None)
+        try:
+            filemanager = FileManager.objects.get(
+                filemanager_name=filemanager_name)
+        except:
+            return Response("Filemanager instance with given name doesnot exists", status=status.HTTP_400_BAD_REQUEST)
+        person = self.request.person
+        files_starred = File.objects.filter(
+            folder__filemanager = filemanager).filter(folder__person = person).filter(starred = True
+        )
+        files = FileSerializer(
+            files_starred, many=True
+        )
+        folders_starred = Folder.objects.filter(
+            filemanager = filemanager).filter(person = person).filter(starred = True
+        )
+        folders = FolderSerializer(
+            folders_starred, many=True
+        )
+        serializer = {
+            'files': files.data,
+            'folders': folders.data,
+            'type': STARRED,
+            'filemanager': filemanager_name
+        }
+        return Response(serializer)
 
 class ItemSharedView(APIView):
     """
