@@ -6,10 +6,12 @@ from django.http import HttpResponse, JsonResponse
 import json
 from rest_framework.decorators import action
 from django.db.models import Q
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
 
 from kernel.models import Person
-from django_filemanager.serializers import FileSerializer, subFolderSerializer, FolderSerializer, rootFolderSerializer, FileManagerSerializer 
-from django_filemanager.constants import ACCEPT, REJECT, REQUEST_STATUS_MAP
+from django_filemanager.serializers import FileSerializer, subFolderSerializer, FolderSerializer, rootFolderSerializer, FileManagerSerializer
+from django_filemanager.constants import ACCEPT, REJECT, REQUEST_STATUS_MAP, BATCH_SIZE
 from django_filemanager.models import Folder, File, FileManager
 from django_filemanager.permissions import HasItemPermissions
 from django_filemanager.constants import SHARED, STARRED
@@ -150,14 +152,15 @@ class FolderViewSet(viewsets.ModelViewSet):
             shared_users = request.data.getlist('shared_users')
             folder.shared_users.clear()
             folder.save()
-            if len(shared_users)==1:
-                if shared_users[0] !='':
-                    person = Person.objects.get(id=request.data['shared_users'])
+            if len(shared_users) == 1:
+                if shared_users[0] != '':
+                    person = Person.objects.get(
+                        id=request.data['shared_users'])
                     folder.shared_users.add(person)
                     return HttpResponse("Folder shared with the user", status=status.HTTP_200_OK)
                 else:
                     return HttpResponse("Removed shared users of the folder", status=status.HTTP_200_OK)
-            elif len(shared_users)>1:
+            elif len(shared_users) > 1:
                 for user in shared_users:
                     person = Person.objects.get(id=user)
                     folder.shared_users.add(person)
@@ -166,6 +169,20 @@ class FolderViewSet(viewsets.ModelViewSet):
                 return HttpResponse("Number of shared users is undefined", status=status.HTTP_200_OK)
         except:
             return HttpResponse("Unable to change shared_user", status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'])
+    def bulk_delete(self, request, *args, **kwargs):
+        data = dict(request.data)
+        try:
+            arr = data["folder_id_arr"]
+        except KeyError:
+            return HttpResponse("folder ids not found.", status=status.HTTP_400_BAD_REQUEST)
+        # try:
+        folders = Folder.objects.filter(pk__in=arr)
+        folders.delete()
+        return HttpResponse(status=status.HTTP_204_NO_CONTENT)
+        # except:
+        #     return HttpResponse("error in deliting folders", status=status.HTTP_400_BAD_REQUEST)
 
 
 class FileAccessView(APIView):
@@ -201,6 +218,7 @@ class FileView(viewsets.ModelViewSet):
     This view allows a user to upload, edit and delete a file
     """
     serializer_class = FileSerializer
+    parser_classes = (FormParser, MultiPartParser, JSONParser)
 
     def get_queryset(self):
         person = self.request.person
@@ -225,6 +243,42 @@ class FileView(viewsets.ModelViewSet):
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
+    @action(detail=False, methods=['post'])
+    def bulk_create(self, request, *args, **kwargs):
+        data = dict(request.data)
+        no_of_files = len(data.get("is_public"))
+        batch = []
+        for i in range(0, no_of_files):
+            folder = Folder.objects.get(pk=int(data.get("folder")[i]))
+            is_public = data.get("is_public")[i] == 'True'
+            starred = data.get("starred")[i] == 'True'
+            new_file = File(upload=data.get("upload")[i],
+                            file_name=data.get("file_name")[i],
+                            is_public=is_public,
+                            extension=data.get("extension")[i],
+                            starred=starred,
+                            size=int(data.get("size")[i]),
+                            folder=folder,
+                            )
+            batch.append(new_file)
+        files = File.objects.bulk_create(batch, 20)
+        serializer = self.get_serializer(files, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def bulk_delete(self, request):
+        data = dict(request.data)
+        try:
+            arr = data["fileIdArr"]
+        except KeyError:
+            return HttpResponse("file ids not found.", status=status.HTTP_400_BAD_REQUEST)
+        try:
+            files = File.objects.filter(pk__in=arr)
+            files.delete()
+            return HttpResponse(status=status.HTTP_204_NO_CONTENT)
+        except:
+            return HttpResponse("error in deliting files", status=status.HTTP_400_BAD_REQUEST)
+
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         parent_folder = instance.folder
@@ -232,14 +286,13 @@ class FileView(viewsets.ModelViewSet):
             root_folder = parent_folder.root
         else:
             root_folder = parent_folder
-        updated_size = root_folder.content_size - \
-            instance.size
+        updated_size = root_folder.content_size - instance.size
         root_folder.content_size = updated_size
         root_folder.save()
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=False, methods=['get'])
+    @ action(detail=False, methods=['get'])
     def shared_with_me(self, request):
         person = self.request.person
         files = File.objects.filter(
@@ -248,10 +301,9 @@ class FileView(viewsets.ModelViewSet):
         serializer = FileSerializer(
             files, many=True
         )
-        print(serializer)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['PATCH'], )
+    @ action(detail=True, methods=['PATCH'], )
     def update_shared_users(self, request, *args, **kwargs):
         pk = kwargs['pk']
         try:
@@ -263,14 +315,15 @@ class FileView(viewsets.ModelViewSet):
             shared_users = request.data.getlist('shared_users')
             file.shared_users.clear()
             file.save()
-            if len(shared_users)==1:
-                if shared_users[0] !='':
-                    person = Person.objects.get(id=request.data['shared_users'])
+            if len(shared_users) == 1:
+                if shared_users[0] != '':
+                    person = Person.objects.get(
+                        id=request.data['shared_users'])
                     file.shared_users.add(person)
                     return HttpResponse("file shared with the user", status=status.HTTP_200_OK)
                 else:
                     return HttpResponse("Removed shared users of the file", status=status.HTTP_200_OK)
-            elif len(shared_users)>1:
+            elif len(shared_users) > 1:
                 for user in shared_users:
                     person = Person.objects.get(id=user)
                     file.shared_users.add(person)
@@ -282,8 +335,8 @@ class FileView(viewsets.ModelViewSet):
 
 
 class AllSharedItems(APIView):
-    
-    def get(self,request,*args, **kwargs):
+
+    def get(self, request, *args, **kwargs):
         filemanager_name = request.query_params.get('filemanager', None)
         try:
             filemanager = FileManager.objects.get(
@@ -292,14 +345,14 @@ class AllSharedItems(APIView):
             return Response("Filemanager instance with given name doesnot exists", status=status.HTTP_400_BAD_REQUEST)
         person = self.request.person
         files_shared = File.objects.filter(
-            folder__filemanager = filemanager).filter(shared_users = person
-        )
+            folder__filemanager=filemanager).filter(shared_users=person
+                                                    )
         files = FileSerializer(
             files_shared, many=True
         )
         folders_shared = Folder.objects.filter(
-            filemanager = filemanager).filter(shared_users = person
-        )
+            filemanager=filemanager).filter(shared_users=person
+                                            )
         folders = FolderSerializer(
             folders_shared, many=True
         )
@@ -353,8 +406,6 @@ class ItemSharedView(APIView):
 
     def get(self, request, *args, **kwargs):
         item_id = kwargs['id']
-        # print(kwargs)
-        # print(path)
         if kwargs['item2'] == 'folder':
             folder = Folder.objects.get(id=item_id)
             serializer = FolderSerializer(folder)
