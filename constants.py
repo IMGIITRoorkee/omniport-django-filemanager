@@ -3,6 +3,7 @@ READ_ONLY = 'r_o'
 WRITE_ONLY = 'w_o'
 READ_AND_WRITE = 'r_w'
 SHARED = 'shared'
+STARRED = 'starred'
 PERMISSIONS = (
     (FORBIDDEN, 'FORBIDDEN'),
     (READ_ONLY, 'READ_ONLY'),
