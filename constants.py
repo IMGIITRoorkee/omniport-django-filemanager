@@ -18,7 +18,7 @@ REQUEST_STATUS = (
 )
 ACCEPT = 'accept'
 REJECT = 'reject'
-
+BATCH_SIZE = 20,
 REQUEST_STATUS_MAP = {
     'not_made': '0',
     'pending': '1',
