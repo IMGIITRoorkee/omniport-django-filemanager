@@ -12,20 +12,17 @@ class HasItemPermissions(permissions.BasePermission):
       item = view.kwargs['item1']
       uu_id = view.kwargs['uuid']
       item_id = view.kwargs['id']
-      print(view.kwargs)
       person = request.person
       if is_folder and item=='folder':
         try:
           folder = Folder.objects.get(sharing_id = uu_id)
           if folder.shared_users.get(id=person.id):
-            print("folder is shared with user")
             if folder.id==item_id:
               return True
             else:
               dummy_folder = Folder.objects.get(id=item_id)
               while dummy_folder.parent!=None:
                 print("running loop")
-                print(dummy_folder)
                 if dummy_folder.parent.id==folder.id:
                   return True
                 else:

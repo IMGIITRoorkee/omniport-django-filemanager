@@ -190,6 +190,7 @@ class File(Model):
 
     folder = models.ForeignKey(
         to=Folder,
+        related_name="files",
         on_delete=models.CASCADE,
     )
 

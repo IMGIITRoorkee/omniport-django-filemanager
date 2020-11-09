@@ -11,7 +11,7 @@ class FileSerializer(ModelSerializer):
     """
 
     path = serializers.SerializerMethodField()
-    shared_users = AvatarSerializer(many=True,read_only=True)
+    shared_users = AvatarSerializer(many=True, read_only=True)
 
     class Meta:
         model = File
@@ -37,11 +37,11 @@ class FolderSerializer(ModelSerializer):
     Serializer for Folder object
     """
 
-    files = FileSerializer(many=True, source='file_set', read_only=True)
+    files = FileSerializer(many=True,  read_only=True)
     folders = subFolderSerializer(read_only=True, many=True)
     filemanagername = serializers.ReadOnlyField()
     person = AvatarSerializer(read_only=True)
-    shared_users = AvatarSerializer(many=True,read_only=True)
+    shared_users = AvatarSerializer(many=True, read_only=True)
 
     # def get_folders(self, obj):
     #     return obj.folders.all()
