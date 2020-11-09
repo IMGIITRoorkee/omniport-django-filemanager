@@ -93,7 +93,7 @@ class Folder(Model):
         null=True,
     )
 
-    content_size = models.IntegerField(default=0)
+    content_size = models.BigIntegerField(default=0)
 
     parent = models.ForeignKey(
         "self",
