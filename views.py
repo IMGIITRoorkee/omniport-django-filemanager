@@ -177,12 +177,37 @@ class FolderViewSet(viewsets.ModelViewSet):
             arr = data["folder_id_arr"]
         except KeyError:
             return HttpResponse("folder ids not found.", status=status.HTTP_400_BAD_REQUEST)
-        # try:
-        folders = Folder.objects.filter(pk__in=arr)
-        folders.delete()
-        return HttpResponse(status=status.HTTP_204_NO_CONTENT)
-        # except:
-        #     return HttpResponse("error in deliting folders", status=status.HTTP_400_BAD_REQUEST)
+        try:
+            folders = Folder.objects.filter(pk__in=arr)
+            folders.delete()
+            return HttpResponse(status=status.HTTP_204_NO_CONTENT)
+        except:
+            return HttpResponse("error in deliting folders", status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if not instance.root == None:
+            root_folder = instance.root
+        else:
+            root_folder = instance
+        updated_size = root_folder.content_size - instance.content_size
+        root_folder.content_size = updated_size
+        root_folder.save()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def get_folder_size(self, folder):
+        size = 0
+        files = folder.files.all()
+        folders = folder.folders.all()
+        for file in files:
+            size = size + file.size
+        if folders == None:
+            return size
+        else:
+            for child in folders:
+                size = size + self.get_folder_size(child)
+            return size
 
 
 class FileAccessView(APIView):
@@ -227,16 +252,19 @@ class FileView(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         parent_folder = Folder.objects.get(pk=request.data.get("folder"))
+        file_size = int(request.data.get("size"))
         if not parent_folder.root == None:
             root_folder = parent_folder.root
         else:
             root_folder = parent_folder
-        updated_size = root_folder.content_size + \
-            int(request.data.get("size"))
-        if updated_size > root_folder.max_space:
+        if root_folder.content_size + file_size > root_folder.max_space:
             return HttpResponse("Space limit exceeded", status=status.HTTP_400_BAD_REQUEST)
-        root_folder.content_size = updated_size
-        root_folder.save()
+        while not parent_folder == None:
+            updated_size = parent_folder.content_size + file_size
+            parent_folder.content_size = updated_size
+            parent_folder.save()
+            parent_folder = parent_folder.parent
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -248,8 +276,28 @@ class FileView(viewsets.ModelViewSet):
         data = dict(request.data)
         no_of_files = len(data.get("is_public"))
         batch = []
+        try:
+            folder = Folder.objects.get(pk=int(data.get("folder")[0]))
+            parent_folder = folder
+        except Folder.DoesNotExist:
+            return HttpResponse("parent folder doesnot found", status=status.HTTP_400_BAD_REQUEST)
+        if not parent_folder.root == None:
+            root_folder = parent_folder.root
+        else:
+            root_folder = parent_folder
+        total_file_size = 0
         for i in range(0, no_of_files):
-            folder = Folder.objects.get(pk=int(data.get("folder")[i]))
+            total_file_size = total_file_size + int(data.get("size")[i])
+        if total_file_size > root_folder.max_space:
+            return HttpResponse("Space limit exceeded", status=status.HTTP_400_BAD_REQUEST)
+
+        while not parent_folder == None:
+            updated_size = parent_folder.content_size + total_file_size
+            parent_folder.content_size = updated_size
+            parent_folder.save()
+            parent_folder = parent_folder.parent
+
+        for i in range(0, no_of_files):
             is_public = data.get("is_public")[i] == 'True'
             starred = data.get("starred")[i] == 'True'
             new_file = File(upload=data.get("upload")[i],
@@ -270,14 +318,30 @@ class FileView(viewsets.ModelViewSet):
         data = dict(request.data)
         try:
             arr = data["fileIdArr"]
+            if len(arr) == 0:
+                return HttpResponse("Arrays have no length.", status=status.HTTP_400_BAD_REQUEST)
         except KeyError:
             return HttpResponse("file ids not found.", status=status.HTTP_400_BAD_REQUEST)
         try:
             files = File.objects.filter(pk__in=arr)
+            parent_folder = files[0].folder
+            if not parent_folder.root == None:
+                root_folder = parent_folder.root
+            else:
+                root_folder = parent_folder
+            total_file_size = 0
+            for file in files:
+                total_file_size = total_file_size + file.size
+            while not parent_folder == None:
+                updated_size = parent_folder.content_size - total_file_size
+                parent_folder.content_size = updated_size
+                parent_folder.save()
+                parent_folder = parent_folder.parent
+
             files.delete()
             return HttpResponse(status=status.HTTP_204_NO_CONTENT)
         except:
-            return HttpResponse("error in deliting files", status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse("error in deleting files", status=status.HTTP_400_BAD_REQUEST)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
