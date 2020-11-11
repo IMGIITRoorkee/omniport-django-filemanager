@@ -504,7 +504,6 @@ class FileManagerViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = FileManager.objects.all()
 
     def create(self, request, *args, **kwargs):
-        # data = dict(request.data)
         filemanager_access_roles = request.data.getlist("filemanager_access_roles")
 
         try:
@@ -515,7 +514,7 @@ class FileManagerViewSet(viewsets.ReadOnlyModelViewSet):
                 max_space=request.data.get("max_space"),
                 logo=request.data.get("logo"))
         except:
-            return Response("Unable to create filemanager", status=404)
+            return Response("Unable to create filemanager", status=400)
 
         try:
             obj = {'Student':Q(student=None), 'FacultyMember':Q(facultymember=None),
