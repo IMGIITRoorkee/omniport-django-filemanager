@@ -502,3 +502,41 @@ class FileManagerViewSet(viewsets.ReadOnlyModelViewSet):
 
     serializer_class = FileManagerSerializer
     queryset = FileManager.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        # data = dict(request.data)
+        filemanager_access_roles = request.data.getlist("filemanager_access_roles")
+
+        try:
+            filemanager = FileManager.objects.create(
+                filemanager_name=request.data.get("filemanager_name"),
+                folder_name_template=request.data.get("folder_name_template"),
+                filemanager_access_roles=request.data.getlist("filemanager_access_roles"),
+                max_space=request.data.get("max_space"),
+                logo=request.data.get("logo"))
+        except:
+            return Response("Unable to create filemanager", status=404)
+
+        try:
+            obj = {'Student':Q(student=None), 'FacultyMember':Q(facultymember=None),
+                'Maintainer':Q(maintainer=None), 'Guest':Q(guest=None) }
+            q = obj[filemanager.filemanager_access_roles[0]]                                                                            
+            for i in range(1,len(filemanager_access_roles)): 
+                q = q & obj[filemanager_access_roles[i]]
+
+            people = Person.objects.exclude(q)
+            batch = []
+            for i in range(0, len(people)):
+                new_root_folder = Folder(filemanager = filemanager,
+                                folder_name=filemanager.folder_name_template,
+                                person=people[i],
+                                max_space=filemanager.max_space,
+                                starred=False,
+                                parent=None,
+                                )
+                batch.append(new_root_folder)
+            folders = Folder.objects.bulk_create(batch, 20)
+            serializer = FolderSerializer(folders, many=True)
+            return Response(serializer.data)
+        except:
+            return Response("Filemanager created. Error in assigning root folders", status=404)
