@@ -48,6 +48,10 @@ class FileManager(Model):
         null=True
     )
 
+    max_space = models.BigIntegerField(
+        null=True,
+    )
+
     def __str__(self):
         """
         Return the string representation of the model
