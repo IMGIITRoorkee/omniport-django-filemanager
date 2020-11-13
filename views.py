@@ -7,12 +7,14 @@ import json
 from rest_framework.decorators import action
 from django.db.models import Q
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from django.utils.encoding import smart_str
 
+from django.conf import settings
 
 from kernel.models import Person
 from django_filemanager.serializers import FileSerializer, subFolderSerializer, FolderSerializer, rootFolderSerializer, FileManagerSerializer
 from django_filemanager.constants import ACCEPT, REJECT, REQUEST_STATUS_MAP, BATCH_SIZE
-from django_filemanager.models import Folder, File, FileManager
+from django_filemanager.models import Folder, File, FileManager, BASE_URL
 from django_filemanager.permissions import HasItemPermissions
 from django_filemanager.constants import SHARED, STARRED
 
@@ -233,12 +235,10 @@ class FileAccessView(APIView):
     def get(self, request, format=None):
         path = request.path
         url = path.replace(BASE_URL, '', 1)
-
         person = request.person
 
         if File.objects.filter(upload=url).exists():
             file_object = File.objects.get(upload=url)
-
             if (file_object.belongs_to() == person) or file_object.is_public:
                 response = HttpResponse(status=200)
                 response['Content-Type'] = ''
@@ -504,35 +504,37 @@ class FileManagerViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = FileManager.objects.all()
 
     def create(self, request, *args, **kwargs):
-        filemanager_access_roles = request.data.getlist("filemanager_access_roles")
+        filemanager_access_roles = request.data.getlist(
+            "filemanager_access_roles")
 
         try:
             filemanager = FileManager.objects.create(
                 filemanager_name=request.data.get("filemanager_name"),
                 folder_name_template=request.data.get("folder_name_template"),
-                filemanager_access_roles=request.data.getlist("filemanager_access_roles"),
+                filemanager_access_roles=request.data.getlist(
+                    "filemanager_access_roles"),
                 max_space=request.data.get("max_space"),
                 logo=request.data.get("logo"))
         except:
             return Response("Unable to create filemanager", status=400)
 
         try:
-            obj = {'Student':Q(student=None), 'FacultyMember':Q(facultymember=None),
-                'Maintainer':Q(maintainer=None), 'Guest':Q(guest=None) }
-            q = obj[filemanager.filemanager_access_roles[0]]                                                                            
-            for i in range(1,len(filemanager_access_roles)): 
+            obj = {'Student': Q(student=None), 'FacultyMember': Q(facultymember=None),
+                   'Maintainer': Q(maintainer=None), 'Guest': Q(guest=None)}
+            q = obj[filemanager.filemanager_access_roles[0]]
+            for i in range(1, len(filemanager_access_roles)):
                 q = q & obj[filemanager_access_roles[i]]
 
             people = Person.objects.exclude(q)
             batch = []
             for i in range(0, len(people)):
-                new_root_folder = Folder(filemanager = filemanager,
-                                folder_name=filemanager.folder_name_template,
-                                person=people[i],
-                                max_space=filemanager.max_space,
-                                starred=False,
-                                parent=None,
-                                )
+                new_root_folder = Folder(filemanager=filemanager,
+                                         folder_name=filemanager.folder_name_template,
+                                         person=people[i],
+                                         max_space=filemanager.max_space,
+                                         starred=False,
+                                         parent=None,
+                                         )
                 batch.append(new_root_folder)
             folders = Folder.objects.bulk_create(batch, 20)
             serializer = FolderSerializer(folders, many=True)

@@ -125,6 +125,8 @@ class Folder(Model):
     permission = models.CharField(
         max_length=10, choices=constants.PERMISSIONS, default="r_o")
 
+    path = models.TextField()
+
     @property
     def available_space(self):
         """Gives available space"""
@@ -137,15 +139,16 @@ class Folder(Model):
         if self.filemanager.logo:
             return self.filemanager.logo
 
-    @property
-    def path(self):
-        if self.root:
+    def get_path(self):
+        if self.parent == None:
             return self.person.user.username
-        return os.path.join(self.parent.path, self.folder_name)
+        uuid_key = uuid.uuid4()
+        return os.path.join(self.parent.path, str(uuid_key))
 
     def save(self, *args, **kwargs):
         if not self.folder_name:
             self.folder_name = self.person.user.username
+        self.path = self.get_path()
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -184,6 +187,7 @@ class File(Model):
     upload = models.FileField(
         upload_to=UploadTo('', '', file_manager=True),
         storage=personal_storage,
+        max_length=1000000
     )
 
     shared_users = models.ManyToManyField(

@@ -50,7 +50,7 @@ class FolderSerializer(ModelSerializer):
         model = Folder
         fields = '__all__'
         read_only_fields = ['person', 'filemanagername', 'max_space'
-                            'content_size','shared_users']
+                            'content_size','shared_users','path']
 
     def create(self, validated_data):
         """
