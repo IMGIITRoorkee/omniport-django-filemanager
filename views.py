@@ -7,9 +7,7 @@ import json
 from rest_framework.decorators import action
 from django.db.models import Q
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from django.utils.encoding import smart_str
 
-from django.conf import settings
 
 from kernel.models import Person
 from django_filemanager.serializers import FileSerializer, subFolderSerializer, FolderSerializer, rootFolderSerializer, FileManagerSerializer
