@@ -177,23 +177,23 @@ class FolderViewSet(viewsets.ModelViewSet):
             arr = data["folder_id_arr"]
         except KeyError:
             return HttpResponse("folder ids not found.", status=status.HTTP_400_BAD_REQUEST)
-        # try:
-        folders = Folder.objects.filter(pk__in=arr)
-        if len(folders) == 0:
-            return HttpResponse("no folder ids given", status=status.HTTP_400_BAD_REQUEST)
-        total_folder_size = 0
-        for folder in folders:
-            total_folder_size = total_folder_size + folder.content_size
-        parent = folders[0].parent
-        while not parent == None:
-            updated_size = parent.content_size - total_folder_size
-            parent.content_size = updated_size
-            parent.save()
-            parent = parent.parent
-        folders.delete()
-        return HttpResponse(status=status.HTTP_204_NO_CONTENT)
-        # except:
-        #     return HttpResponse("error in deliting folders", status=status.HTTP_400_BAD_REQUEST)
+        try:
+            folders = Folder.objects.filter(pk__in=arr)
+            if len(folders) == 0:
+                return HttpResponse("no folder ids given", status=status.HTTP_400_BAD_REQUEST)
+            total_folder_size = 0
+            for folder in folders:
+                total_folder_size = total_folder_size + folder.content_size
+            parent = folders[0].parent
+            while not parent == None:
+                updated_size = parent.content_size - total_folder_size
+                parent.content_size = updated_size
+                parent.save()
+                parent = parent.parent
+            folders.delete()
+            return HttpResponse(status=status.HTTP_204_NO_CONTENT)
+        except:
+            return HttpResponse("error in deliting folders", status=status.HTTP_400_BAD_REQUEST)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -219,6 +219,19 @@ class FolderViewSet(viewsets.ModelViewSet):
             for child in folders:
                 size = size + self.get_folder_size(child)
             return size
+
+    @action(methods=['get'], detail=True, url_name='parents', url_path='parents')
+    def get_parent_folders(self, request, pk):
+        try:
+            folder = Folder.objects.get(pk=pk)
+        except Folder.DoesNotExist:
+            return HttpResponse("Folder Not available", status=status.HTTP_400_BAD_REQUEST)
+        parents = []
+        while folder != None:
+            parents.insert(0, folder)
+            folder = folder.parent
+        serializer = subFolderSerializer(parents, many=True)
+        return Response(serializer.data)
 
 
 class FileAccessView(APIView):
