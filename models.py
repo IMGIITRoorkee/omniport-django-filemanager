@@ -1,7 +1,8 @@
 import swapper
 import os
-
 import uuid
+
+from django.db.models.signals import pre_delete
 from django.db import models
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
@@ -230,3 +231,14 @@ class File(Model):
         file_name = self.file_name
 
         return f'{file_name}: {person}'
+
+
+def remove_file(sender, instance, **kwargs):
+    path = instance.upload.path
+    try:
+        os.remove(path)
+    except FileNotFoundError:
+        pass
+
+
+pre_delete.connect(remove_file, sender=File)
