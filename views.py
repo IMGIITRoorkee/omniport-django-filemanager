@@ -37,7 +37,7 @@ class FolderViewSet(viewsets.ModelViewSet):
         filemanager_name = request.query_params.get('filemanager', None)
         try:
             filemanager = FileManager.objects.get(
-                filemanager_name=filemanager_name)
+                filemanager_url_path=filemanager_name)
         except:
             return Response("Filemanager instance with given name doesnot exists", status=status.HTTP_400_BAD_REQUEST)
         person = self.request.person
