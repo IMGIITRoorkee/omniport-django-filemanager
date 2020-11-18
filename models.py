@@ -1,6 +1,8 @@
 import swapper
 import os
 import uuid
+import shutil
+
 
 from django.db.models.signals import pre_delete
 from django.db import models
@@ -256,3 +258,15 @@ def remove_file(sender, instance, **kwargs):
 
 
 pre_delete.connect(remove_file, sender=File)
+
+def remove_folder(sender,instance,**kwargs):
+    destination = instance.path
+    try:
+        path = os.path.join(
+            settings.PERSONAL_ROOT,
+            destination,
+        )
+        shutil.rmtree(path)
+    except FileNotFoundError:
+        pass
+pre_delete.connect(remove_folder,sender=Folder)
