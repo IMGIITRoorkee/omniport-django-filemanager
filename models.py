@@ -31,7 +31,10 @@ class FileManager(Model):
         max_length=50,
         default="undedfined filemanager",
     )
-
+    filemanager_url_path = models.CharField(
+        max_length=50,
+        null=True,
+    )
     folder_name_template = models.CharField(
         max_length=200, null=True
     )
@@ -52,6 +55,14 @@ class FileManager(Model):
     max_space = models.BigIntegerField(
         null=True,
     )
+    def save(self,*args, **kwargs):
+        path = self.filemanager_url_path
+        if not self.filemanager_url_path:
+            path = self.filemanager_name.strip()
+        path = path.lower()
+        path = path.replace(" ","_")
+        self.filemanager_url_path = path
+        super().save(*args, **kwargs)        
 
     def __str__(self):
         """
@@ -163,6 +174,9 @@ class Folder(Model):
 
     def filemanagername(self):
         return self.filemanager.filemanager_name
+    
+    def filemanagerUrlPath(self):
+        return self.filemanager.filemanager_url_path
 
 
 class File(Model):
