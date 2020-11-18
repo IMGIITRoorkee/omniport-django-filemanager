@@ -1,13 +1,15 @@
+import json
+
+from django.http import HttpResponse, JsonResponse
+from django.db.models import Q
+from django.db.models.signals import post_save
+
 from rest_framework import viewsets, generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.http import HttpResponse, JsonResponse
-import json
 from rest_framework.decorators import action
-from django.db.models import Q
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-
 
 from kernel.models import Person
 from django_filemanager.serializers import FileSerializer, subFolderSerializer, FolderSerializer, rootFolderSerializer, FileManagerSerializer
@@ -506,7 +508,7 @@ class ItemSharedView(APIView):
             return Response("requested wrong item", status=404)
 
 
-class FileManagerViewSet(viewsets.ReadOnlyModelViewSet):
+class FileManagerViewSet(viewsets.ModelViewSet):
     """
     This view allows user to view all existing filemanager instances
     """
@@ -514,41 +516,33 @@ class FileManagerViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = FileManagerSerializer
     queryset = FileManager.objects.all()
 
-    def create(self, request, *args, **kwargs):
-        filemanager_access_roles = request.data.getlist(
-            "filemanager_access_roles")
 
-        try:
-            filemanager = FileManager.objects.create(
-                filemanager_name=request.data.get("filemanager_name"),
-                folder_name_template=request.data.get("folder_name_template"),
-                filemanager_access_roles=request.data.getlist(
-                    "filemanager_access_roles"),
-                max_space=request.data.get("max_space"),
-                logo=request.data.get("logo"))
-        except:
-            return Response("Unable to create filemanager", status=400)
+def make_root_folders(sender, instance, **kwargs):
+    filemanager = instance
+    try:
+        filemanager_access_roles = filemanager.filemanager_access_roles
+        obj = {'Student': Q(student=None), 'FacultyMember': Q(facultymember=None),
+               'Maintainer': Q(maintainer=None), 'Guest': Q(guest=None)}
+        q = obj[filemanager.filemanager_access_roles[0]]
+        for i in range(1, len(filemanager_access_roles)):
+            q = q & obj[filemanager_access_roles[i]]
 
-        try:
-            obj = {'Student': Q(student=None), 'FacultyMember': Q(facultymember=None),
-                   'Maintainer': Q(maintainer=None), 'Guest': Q(guest=None)}
-            q = obj[filemanager.filemanager_access_roles[0]]
-            for i in range(1, len(filemanager_access_roles)):
-                q = q & obj[filemanager_access_roles[i]]
+        people = Person.objects.exclude(q)
+        batch = []
+        for i in range(0, len(people)):
+            new_root_folder = Folder(filemanager=filemanager,
+                                     folder_name=filemanager.folder_name_template,
+                                     person=people[i],
+                                     max_space=filemanager.max_space,
+                                     starred=False,
+                                     parent=None,
+                                     )
+            batch.append(new_root_folder)
+        folders = Folder.objects.bulk_create(batch, 20)
+        serializer = FolderSerializer(folders, many=True)
+        return Response(serializer.data)
+    except:
+        return Response("Filemanager created. Error in assigning root folders", status=404)
 
-            people = Person.objects.exclude(q)
-            batch = []
-            for i in range(0, len(people)):
-                new_root_folder = Folder(filemanager=filemanager,
-                                         folder_name=filemanager.folder_name_template,
-                                         person=people[i],
-                                         max_space=filemanager.max_space,
-                                         starred=False,
-                                         parent=None,
-                                         )
-                batch.append(new_root_folder)
-            folders = Folder.objects.bulk_create(batch, 20)
-            serializer = FolderSerializer(folders, many=True)
-            return Response(serializer.data)
-        except:
-            return Response("Filemanager created. Error in assigning root folders", status=404)
+
+post_save.connect(make_root_folders, sender=FileManager)
