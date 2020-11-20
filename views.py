@@ -530,19 +530,22 @@ def make_root_folders(sender, instance, **kwargs):
         people = Person.objects.exclude(q)
         batch = []
         for i in range(0, len(people)):
+            try:
+                person = people[i]
+                unique_name = eval(filemanager.folder_name_template)
+            except Exception:
+                unique_name = person.user.username
             new_root_folder = Folder(filemanager=filemanager,
-                                     folder_name=filemanager.folder_name_template,
-                                     person=people[i],
+                                     folder_name=unique_name,
+                                     person=person,
                                      max_space=filemanager.max_space,
                                      starred=False,
                                      parent=None,
                                      )
             batch.append(new_root_folder)
         folders = Folder.objects.bulk_create(batch, 20)
-        serializer = FolderSerializer(folders, many=True)
-        return Response(serializer.data)
     except:
-        return Response("Filemanager created. Error in assigning root folders", status=404)
+        pass
 
 
 post_save.connect(make_root_folders, sender=FileManager)
