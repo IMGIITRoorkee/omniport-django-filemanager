@@ -57,14 +57,15 @@ class FileManager(Model):
     max_space = models.BigIntegerField(
         null=True,
     )
-    def save(self,*args, **kwargs):
+
+    def save(self, *args, **kwargs):
         path = self.filemanager_url_path
         if not self.filemanager_url_path:
             path = self.filemanager_name.strip()
         path = path.lower()
-        path = path.replace(" ","_")
+        path = path.replace(" ", "_")
         self.filemanager_url_path = path
-        super().save(*args, **kwargs)        
+        super().save(*args, **kwargs)
 
     def __str__(self):
         """
@@ -155,9 +156,8 @@ class Folder(Model):
 
     def get_path(self):
         if self.parent == None:
-            return self.person.user.username
-        uuid_key = uuid.uuid4()
-        return os.path.join(self.parent.path, str(uuid_key))
+            return self.folder_name
+        return os.path.join(self.parent.path, self.folder_name)
 
     def save(self, *args, **kwargs):
         if not self.folder_name:
@@ -176,7 +176,7 @@ class Folder(Model):
 
     def filemanagername(self):
         return self.filemanager.filemanager_name
-    
+
     def filemanagerUrlPath(self):
         return self.filemanager.filemanager_url_path
 
@@ -255,11 +255,14 @@ def remove_file(sender, instance, **kwargs):
         os.remove(path)
     except FileNotFoundError:
         pass
+    except OSError:
+        pass
 
 
 pre_delete.connect(remove_file, sender=File)
 
-def remove_folder(sender,instance,**kwargs):
+
+def remove_folder(sender, instance, **kwargs):
     destination = instance.path
     try:
         path = os.path.join(
@@ -269,4 +272,8 @@ def remove_folder(sender,instance,**kwargs):
         shutil.rmtree(path)
     except FileNotFoundError:
         pass
-pre_delete.connect(remove_folder,sender=Folder)
+    except OSError:
+        pass
+
+
+pre_delete.connect(remove_folder, sender=Folder)
