@@ -303,7 +303,7 @@ class FileView(viewsets.ModelViewSet):
         try:
             folder = Folder.objects.get(pk=int(data.get("folder")[0]))
             parent_folder = folder
-        except Folder.DoesNotExist:
+        except Folder.DoesNotExist: 
             return HttpResponse("parent folder doesnot found", status=status.HTTP_400_BAD_REQUEST)
         if not parent_folder.root == None:
             root_folder = parent_folder.root

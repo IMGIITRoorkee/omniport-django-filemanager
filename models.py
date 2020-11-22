@@ -87,6 +87,7 @@ class Folder(Model):
         default=uuid.uuid4, editable=False, db_index=True)
 
     filemanager = models.ForeignKey(
+        related_name="folders",
         to=FileManager,
         on_delete=models.CASCADE,
     )
