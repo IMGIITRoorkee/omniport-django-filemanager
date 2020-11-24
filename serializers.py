@@ -5,23 +5,6 @@ from django_filemanager.models import Folder, File, FileManager
 from kernel.serializers.person import AvatarSerializer
 
 
-class FileSerializer(ModelSerializer):
-    """
-    Serializer for File object
-    """
-
-    path = serializers.SerializerMethodField()
-    shared_users = AvatarSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = File
-        fields = '__all__'
-        read_only_fields = ['shared_users']
-
-    def get_path(self, obj):
-        return obj.file_relative_path()
-
-
 class subFolderSerializer(ModelSerializer):
     filemanagername = serializers.ReadOnlyField()
     person = AvatarSerializer(read_only=True)
@@ -30,6 +13,23 @@ class subFolderSerializer(ModelSerializer):
     class Meta:
         model = Folder
         fields = '__all__'
+
+class FileSerializer(ModelSerializer):
+    """
+    Serializer for File object
+    """
+
+    path = serializers.SerializerMethodField()
+    shared_users = AvatarSerializer(many=True, read_only=True)
+    folder = subFolderSerializer()
+
+    class Meta:
+        model = File
+        fields = '__all__'
+        read_only_fields = ['shared_users']
+
+    def get_path(self, obj):
+        return obj.file_relative_path()
 
 
 class FolderSerializer(ModelSerializer):
