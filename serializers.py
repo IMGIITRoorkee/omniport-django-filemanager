@@ -14,6 +14,7 @@ class subFolderSerializer(ModelSerializer):
         model = Folder
         fields = '__all__'
 
+
 class FileSerializer(ModelSerializer):
     """
     Serializer for File object

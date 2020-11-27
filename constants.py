@@ -25,3 +25,4 @@ REQUEST_STATUS_MAP = {
     'accept': '2',
     'reject': '3',
 }
+DEFAULT_ROOT_FOLDER_NAME_TEMPLATE = "person.user.username"
