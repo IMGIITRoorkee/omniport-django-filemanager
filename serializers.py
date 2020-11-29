@@ -67,19 +67,6 @@ class FolderSerializer(ModelSerializer):
         return application
 
 
-class rootFolderSerializer(ModelSerializer):
-    filemanagername = serializers.ReadOnlyField()
-    person = AvatarSerializer(read_only=True)
-    filemanagerUrlPath = serializers.ReadOnlyField()
-
-    class Meta:
-        model = Folder
-        fields = ['id', 'filemanagername', 'content_size',
-                  'max_space', 'data_request_status', 'additional_space', 'person', 'filemanagerUrlPath']
-        read_only_fields = ['max_space',
-                            'data_request_status', 'additional_space', 'filemanagerUrlPath']
-
-
 class FileManagerSerializer(ModelSerializer):
     """
     Serializer for filemanager object
@@ -88,3 +75,14 @@ class FileManagerSerializer(ModelSerializer):
     class Meta:
         model = FileManager
         fields = '__all__'
+
+class rootFolderSerializer(ModelSerializer):
+    person = AvatarSerializer(read_only=True)
+    filemanager = FileManagerSerializer(read_only=True)
+
+    class Meta:
+        model = Folder
+        fields = ['id', 'content_size',
+                  'max_space', 'data_request_status', 'additional_space', 'person','filemanager']
+        read_only_fields = ['max_space',
+                            'data_request_status', 'additional_space','filemanager']
