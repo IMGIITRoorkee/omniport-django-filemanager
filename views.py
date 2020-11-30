@@ -10,13 +10,14 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.permissions import IsAuthenticated
 
 from kernel.models import Person
 from kernel.permissions.omnipotence import HasOmnipotenceRights
 from django_filemanager.serializers import FileSerializer, subFolderSerializer, FolderSerializer, rootFolderSerializer, FileManagerSerializer
 from django_filemanager.constants import ACCEPT, REJECT, REQUEST_STATUS_MAP, BATCH_SIZE
 from django_filemanager.models import Folder, File, FileManager, BASE_URL
-from django_filemanager.permissions import HasItemPermissions
+from django_filemanager.permissions import HasItemPermissions, HasFolderOwnerPermission, HasFoldersOwnerPermission, HasFileOwnerPermission, HasFilesOwnerPermission
 from django_filemanager.constants import SHARED, STARRED, DEFAULT_ROOT_FOLDER_NAME_TEMPLATE
 
 
@@ -27,6 +28,20 @@ class FolderViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = FolderSerializer
+    permission_classes = [IsAuthenticated]
+    permission_classes_by_action = {
+        'get_data_request': [HasOmnipotenceRights],
+        'handle_request': [HasOmnipotenceRights],
+        'destroy': [HasFolderOwnerPermission],
+        'bulk_delete': [HasFoldersOwnerPermission],
+        'default': [IsAuthenticated],
+    }
+
+    def get_permissions(self):
+        try:
+            return [permission() for permission in self.permission_classes_by_action[self.action]]
+        except KeyError as e:
+            return [permission() for permission in self.permission_classes_by_action['default']]
 
     def get_queryset(self):
         person = self.request.person
@@ -119,7 +134,7 @@ class FolderViewSet(viewsets.ModelViewSet):
         serializer = rootFolderSerializer(folders, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'], )
+    @action(detail=True, methods=['post'])
     def handle_request(self, request, pk):
         try:
             folder = Folder.objects.get(pk=pk)
@@ -180,14 +195,16 @@ class FolderViewSet(viewsets.ModelViewSet):
             arr = data["folder_id_arr"]
         except KeyError:
             return HttpResponse("folder ids not found.", status=status.HTTP_400_BAD_REQUEST)
+
+        folders = Folder.objects.filter(pk__in=arr)
+        if len(folders) == 0:
+            return HttpResponse("no folder ids given", status=status.HTTP_400_BAD_REQUEST)
+        self.check_object_permissions(self.request, folders)
+        total_folder_size = 0
+        for folder in folders:
+            total_folder_size = total_folder_size + folder.content_size
+        parent = folders[0].parent
         try:
-            folders = Folder.objects.filter(pk__in=arr)
-            if len(folders) == 0:
-                return HttpResponse("no folder ids given", status=status.HTTP_400_BAD_REQUEST)
-            total_folder_size = 0
-            for folder in folders:
-                total_folder_size = total_folder_size + folder.content_size
-            parent = folders[0].parent
             while not parent == None:
                 updated_size = parent.content_size - total_folder_size
                 parent.content_size = updated_size
@@ -229,6 +246,7 @@ class FolderViewSet(viewsets.ModelViewSet):
             folder = Folder.objects.get(pk=pk)
         except Folder.DoesNotExist:
             return HttpResponse("Folder Not available", status=status.HTTP_400_BAD_REQUEST)
+        self.check_object_permissions(self.request, folder)
         parents = []
         while folder != None:
             parents.insert(0, folder)
@@ -269,6 +287,18 @@ class FileView(viewsets.ModelViewSet):
     """
     serializer_class = FileSerializer
     parser_classes = (FormParser, MultiPartParser, JSONParser)
+
+    permission_classes_by_action = {
+        'destroy': [HasFileOwnerPermission],
+        'bulk_delete': [HasFilesOwnerPermission],
+        'default': [IsAuthenticated],
+    }
+
+    def get_permissions(self):
+        try:
+            return [permission() for permission in self.permission_classes_by_action[self.action]]
+        except KeyError as e:
+            return [permission() for permission in self.permission_classes_by_action['default']]
 
     def get_queryset(self):
         person = self.request.person
@@ -347,16 +377,17 @@ class FileView(viewsets.ModelViewSet):
                 return HttpResponse("Arrays have no length.", status=status.HTTP_400_BAD_REQUEST)
         except KeyError:
             return HttpResponse("file ids not found.", status=status.HTTP_400_BAD_REQUEST)
+        files = File.objects.filter(pk__in=arr)
+        self.check_object_permissions(self.request, files)
+        parent_folder = files[0].folder
+        if not parent_folder.root == None:
+            root_folder = parent_folder.root
+        else:
+            root_folder = parent_folder
+        total_file_size = 0
+        for file in files:
+            total_file_size = total_file_size + file.size
         try:
-            files = File.objects.filter(pk__in=arr)
-            parent_folder = files[0].folder
-            if not parent_folder.root == None:
-                root_folder = parent_folder.root
-            else:
-                root_folder = parent_folder
-            total_file_size = 0
-            for file in files:
-                total_file_size = total_file_size + file.size
             while not parent_folder == None:
                 updated_size = parent_folder.content_size - total_file_size
                 parent_folder.content_size = updated_size
@@ -547,8 +578,13 @@ class FileManagerViewSet(viewsets.ModelViewSet):
             people = Person.objects.exclude(q)
             batch = []
             for i in range(0, len(people)):
+                try:
+                    person = people[i]
+                    unique_name = eval(filemanager.folder_name_template)
+                except Exception:
+                    unique_name = person.user.username
                 new_root_folder = Folder(filemanager=filemanager,
-                                         folder_name=filemanager.folder_name_template,
+                                         folder_name=unique_name,
                                          person=people[i],
                                          max_space=filemanager.max_space,
                                          starred=False,
