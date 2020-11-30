@@ -12,6 +12,7 @@ from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from kernel.models import Person
+from kernel.permissions.omnipotence import HasOmnipotenceRights
 from django_filemanager.serializers import FileSerializer, subFolderSerializer, FolderSerializer, rootFolderSerializer, FileManagerSerializer
 from django_filemanager.constants import ACCEPT, REJECT, REQUEST_STATUS_MAP, BATCH_SIZE
 from django_filemanager.models import Folder, File, FileManager, BASE_URL
@@ -515,6 +516,7 @@ class FileManagerViewSet(viewsets.ModelViewSet):
 
     serializer_class = FileManagerSerializer
     queryset = FileManager.objects.all()
+    permission_classes = [HasOmnipotenceRights]
 
     def create(self, request, *args, **kwargs):
         filemanager_access_roles = request.data.getlist(
