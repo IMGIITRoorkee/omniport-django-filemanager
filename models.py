@@ -48,6 +48,11 @@ class FileManager(Model):
         )
     )
 
+    filemanager_extra_space_options = fields.ArrayField(
+        models.BigIntegerField(),
+        null=True
+    )
+
     logo = models.ImageField(
         upload_to=UploadTo('', '', file_manager=False),
         storage=personal_storage,
