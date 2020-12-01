@@ -563,6 +563,9 @@ class FileManagerViewSet(viewsets.ModelViewSet):
                 folder_name_template=folder_name_template,
                 filemanager_access_roles=request.data.getlist(
                     "filemanager_access_roles"),
+                filemanager_extra_space_options=request.data.getlist(
+                    "filemanager_extra_space_options"
+                ),
                 max_space=request.data.get("max_space"),
                 logo=request.data.get("logo"))
         except:
