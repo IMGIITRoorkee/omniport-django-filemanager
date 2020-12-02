@@ -168,23 +168,21 @@ class FolderViewSet(viewsets.ModelViewSet):
 
         try:
             shared_users = request.data.getlist('shared_users')
-            folder.shared_users.clear()
-            folder.save()
-            if len(shared_users) == 1:
-                if shared_users[0] != '':
+            shared_users_initially = [x.id for x in folder.shared_users.all()]
+            deleted_users = list(set(shared_users_initially)-set(shared_users))
+            new_users = list(set(shared_users) - set(shared_users_initially))
+            try:
+                for user in deleted_users:
                     person = Person.objects.get(
-                        id=request.data['shared_users'])
-                    folder.shared_users.add(person)
-                    return HttpResponse("Folder shared with the user", status=status.HTTP_200_OK)
-                else:
-                    return HttpResponse("Removed shared users of the folder", status=status.HTTP_200_OK)
-            elif len(shared_users) > 1:
-                for user in shared_users:
-                    person = Person.objects.get(id=user)
+                            id=user)
+                    folder.shared_users.remove(person)
+                for user in new_users:
+                    person = Person.objects.get(
+                            id=user)
                     folder.shared_users.add(person)
                 return HttpResponse("Folder shared with the users", status=status.HTTP_200_OK)
-            else:
-                return HttpResponse("Number of shared users is undefined", status=status.HTTP_200_OK)
+            except:
+                return HttpResponse("Error occured while updating users", status=status.HTTP_400_BAD_REQUEST)
         except:
             return HttpResponse("Unable to change shared_user", status=status.HTTP_400_BAD_REQUEST)
 
@@ -433,23 +431,21 @@ class FileView(viewsets.ModelViewSet):
 
         try:
             shared_users = request.data.getlist('shared_users')
-            file.shared_users.clear()
-            file.save()
-            if len(shared_users) == 1:
-                if shared_users[0] != '':
+            shared_users_initially = [x.id for x in file.shared_users.all()]
+            deleted_users = list(set(shared_users_initially)-set(shared_users))
+            new_users = list(set(shared_users) - set(shared_users_initially))
+            try:
+                for user in deleted_users:
                     person = Person.objects.get(
-                        id=request.data['shared_users'])
-                    file.shared_users.add(person)
-                    return HttpResponse("file shared with the user", status=status.HTTP_200_OK)
-                else:
-                    return HttpResponse("Removed shared users of the file", status=status.HTTP_200_OK)
-            elif len(shared_users) > 1:
-                for user in shared_users:
-                    person = Person.objects.get(id=user)
+                            id=user)
+                    file.shared_users.remove(person)
+                for user in new_users:
+                    person = Person.objects.get(
+                            id=user)
                     file.shared_users.add(person)
                 return HttpResponse("File shared with the users", status=status.HTTP_200_OK)
-            else:
-                return HttpResponse("Number of shared users is undefined", status=status.HTTP_200_OK)
+            except:
+                return HttpResponse("Error occured while updating users", status=status.HTTP_400_BAD_REQUEST)
         except:
             return HttpResponse("Unable to change shared_user", status=status.HTTP_400_BAD_REQUEST)
 
