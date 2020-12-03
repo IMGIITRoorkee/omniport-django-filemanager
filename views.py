@@ -167,7 +167,8 @@ class FolderViewSet(viewsets.ModelViewSet):
             return HttpResponse("Folder Not available", status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            shared_users = request.data.getlist('shared_users')
+            shared_users = list(
+                filter(None, request.data.getlist('shared_users')))
             shared_users_initially = [x.id for x in folder.shared_users.all()]
             deleted_users = list(set(shared_users_initially)-set(shared_users))
             new_users = list(set(shared_users) - set(shared_users_initially))
