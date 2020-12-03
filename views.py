@@ -174,11 +174,11 @@ class FolderViewSet(viewsets.ModelViewSet):
             try:
                 for user in deleted_users:
                     person = Person.objects.get(
-                            id=user)
+                        id=user)
                     folder.shared_users.remove(person)
                 for user in new_users:
                     person = Person.objects.get(
-                            id=user)
+                        id=user)
                     folder.shared_users.add(person)
                 return HttpResponse("Folder shared with the users", status=status.HTTP_200_OK)
             except:
@@ -430,18 +430,19 @@ class FileView(viewsets.ModelViewSet):
             return HttpResponse("File Not available", status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            shared_users = request.data.getlist('shared_users')
+            shared_users = list(
+                filter(None, request.data.getlist('shared_users')))
             shared_users_initially = [x.id for x in file.shared_users.all()]
             deleted_users = list(set(shared_users_initially)-set(shared_users))
             new_users = list(set(shared_users) - set(shared_users_initially))
             try:
                 for user in deleted_users:
                     person = Person.objects.get(
-                            id=user)
+                        id=user)
                     file.shared_users.remove(person)
                 for user in new_users:
                     person = Person.objects.get(
-                            id=user)
+                        id=user)
                     file.shared_users.add(person)
                 return HttpResponse("File shared with the users", status=status.HTTP_200_OK)
             except:
@@ -476,7 +477,8 @@ class AllSharedItems(APIView):
             'files': files.data,
             'folders': folders.data,
             'type': SHARED,
-            'filemanager': filemanager_name
+            'filemanager': filemanager_name,
+            'filemanagername': filemanager.filemanager_name
         }
         return Response(serializer)
 
@@ -510,7 +512,8 @@ class AllStarredItems(APIView):
             'files': files.data,
             'folders': folders.data,
             'type': STARRED,
-            'filemanager': filemanager_name
+            'filemanager': filemanager_name,
+            'filemanagername': filemanager.filemanager_name
         }
         return Response(serializer)
 
