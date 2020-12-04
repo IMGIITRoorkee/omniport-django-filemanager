@@ -342,7 +342,7 @@ class FileView(viewsets.ModelViewSet):
         total_file_size = 0
         for i in range(0, no_of_files):
             total_file_size = total_file_size + int(data.get("size")[i])
-        if total_file_size > root_folder.max_space:
+        if root_folder.content_size + total_file_size > root_folder.max_space:
             return HttpResponse("Space limit exceeded", status=status.HTTP_400_BAD_REQUEST)
 
         while not parent_folder == None:
