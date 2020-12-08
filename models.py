@@ -157,6 +157,10 @@ class Folder(Model):
             return self.root.max_space - self.root.content_size
         else:
             return self.max_space - self.content_size
+    
+    @property
+    def is_filemanager_public(self):
+        return self.filemanager.is_public
 
     def filemanagerlogo(self):
         if self.filemanager.logo:

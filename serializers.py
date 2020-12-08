@@ -9,6 +9,7 @@ class subFolderSerializer(ModelSerializer):
     filemanagername = serializers.ReadOnlyField()
     person = AvatarSerializer(read_only=True)
     shared_users = AvatarSerializer(many=True, read_only=True)
+    is_filemanager_public = serializers.ReadOnlyField()
 
     class Meta:
         model = Folder
@@ -43,15 +44,13 @@ class FolderSerializer(ModelSerializer):
     filemanagername = serializers.ReadOnlyField()
     person = AvatarSerializer(read_only=True)
     shared_users = AvatarSerializer(many=True, read_only=True)
-
-    # def get_folders(self, obj):
-    #     return obj.folders.all()
+    is_filemanager_public = serializers.ReadOnlyField()
 
     class Meta:
         model = Folder
         fields = '__all__'
         read_only_fields = ['person', 'filemanagername', 'max_space'
-                            'content_size', 'shared_users', 'path']
+                            'content_size', 'shared_users', 'path', 'is_filemanager_public']
 
     def create(self, validated_data):
         """
@@ -76,6 +75,7 @@ class FileManagerSerializer(ModelSerializer):
         model = FileManager
         fields = '__all__'
 
+
 class rootFolderSerializer(ModelSerializer):
     person = AvatarSerializer(read_only=True)
     filemanager = FileManagerSerializer(read_only=True)
@@ -83,6 +83,6 @@ class rootFolderSerializer(ModelSerializer):
     class Meta:
         model = Folder
         fields = ['id', 'content_size',
-                  'max_space', 'data_request_status', 'additional_space', 'person','filemanager']
+                  'max_space', 'data_request_status', 'additional_space', 'person', 'filemanager', 'is_filemanager_public']
         read_only_fields = ['max_space',
-                            'data_request_status', 'additional_space','filemanager']
+                            'data_request_status', 'additional_space', 'filemanager', 'is_filemanager_public']
