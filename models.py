@@ -15,11 +15,11 @@ from formula_one.utils.upload_to import UploadTo
 
 from django_filemanager import constants
 
-BASE_URL = '/api/django_filemanager/media/'
+BASE_URL = '/api/django_filemanager/media_files/'
 
 
 personal_storage = FileSystemStorage(
-    location=settings.PERSONAL_ROOT,
+    location=settings.NETWORK_STORAGE_ROOT,
     base_url=BASE_URL,
 )
 
@@ -54,7 +54,7 @@ class FileManager(Model):
     )
 
     logo = models.ImageField(
-        upload_to=UploadTo('', '', file_manager=False),
+        upload_to=UploadTo('', 'filemanager_logos', file_manager=False),
         storage=personal_storage,
         null=True
     )
@@ -62,6 +62,8 @@ class FileManager(Model):
     max_space = models.BigIntegerField(
         null=True,
     )
+
+    is_public = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         path = self.filemanager_url_path
