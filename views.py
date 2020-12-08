@@ -267,10 +267,9 @@ class FileAccessView(APIView):
         path = request.path
         url = path.replace(BASE_URL, '', 1)
         person = request.person
-
         if File.objects.filter(upload=url).exists():
             file_object = File.objects.get(upload=url)
-            if (file_object.belongs_to() == person) or file_object.is_public:
+            if (file_object.belongs_to() == person) or (person in file_object.shared_users.all()):
                 response = HttpResponse(status=200)
                 response['Content-Type'] = ''
                 response['X-Accel-Redirect'] = '/personal/{}'.format(url)
@@ -567,9 +566,10 @@ class FileManagerViewSet(viewsets.ModelViewSet):
                     "filemanager_extra_space_options"
                 ),
                 max_space=request.data.get("max_space"),
-                logo=request.data.get("logo"))
+                logo=request.data.get("logo")
+            )
         except:
-            return Response("Unable to create filemanager", status=404)
+            return Response("Unable to create filemanager", status=400)
 
         try:
             obj = {'Student': Q(student=None), 'FacultyMember': Q(facultymember=None),
