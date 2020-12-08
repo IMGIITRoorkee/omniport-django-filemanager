@@ -566,10 +566,11 @@ class FileManagerViewSet(viewsets.ModelViewSet):
                     "filemanager_extra_space_options"
                 ),
                 max_space=request.data.get("max_space"),
-                logo=request.data.get("logo")
+                logo=request.data.get("logo"),
+                is_public=bool(request.data.get("is_public"))
             )
         except:
-            return Response("Unable to create filemanager", status=400)
+            return Response("Unable to create filemanager", status=404)
 
         try:
             obj = {'Student': Q(student=None), 'FacultyMember': Q(facultymember=None),
