@@ -24,6 +24,7 @@ class FileSerializer(ModelSerializer):
     path = serializers.ReadOnlyField()
     shared_users = AvatarSerializer(many=True, read_only=True)
     folder = subFolderSerializer()
+    file_url = serializers.ReadOnlyField()
 
     class Meta:
         model = File
