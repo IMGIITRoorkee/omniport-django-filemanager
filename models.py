@@ -15,12 +15,12 @@ from formula_one.utils.upload_to import UploadTo
 
 from django_filemanager import constants
 
-BASE_URL = '/api/django_filemanager/media_files/'
-
+BASE_PROTECTED_URL = '/api/django_filemanager/media_files/'
+BASE_PUBLIC_URL = 'https://iitr.ac.in/media/'
 
 personal_storage = FileSystemStorage(
     location=settings.NETWORK_STORAGE_ROOT,
-    base_url=BASE_URL,
+    base_url=BASE_PROTECTED_URL,
 )
 
 
@@ -249,6 +249,14 @@ class File(Model):
     @property
     def path(self):
         return self.upload.name
+
+    @property
+    def file_url(self):
+        if(self.folder.filemanager.is_public):
+            path = self.upload.name
+            return os.path.join(BASE_PUBLIC_URL, path)
+        else:
+            return os.path.join(BASE_PROTECTED_URL, self.upload.name)
 
     def __str__(self):
         """
