@@ -16,7 +16,7 @@ from kernel.models import Person
 from kernel.permissions.omnipotence import HasOmnipotenceRights
 from django_filemanager.serializers import FileSerializer, subFolderSerializer, FolderSerializer, rootFolderSerializer, FileManagerSerializer
 from django_filemanager.constants import ACCEPT, REJECT, REQUEST_STATUS_MAP, BATCH_SIZE
-from django_filemanager.models import Folder, File, FileManager, BASE_URL
+from django_filemanager.models import Folder, File, FileManager, BASE_PROTECTED_URL
 from django_filemanager.permissions import HasItemPermissions, HasFolderOwnerPermission, HasFoldersOwnerPermission, HasFileOwnerPermission, HasFilesOwnerPermission
 from django_filemanager.constants import SHARED, STARRED, DEFAULT_ROOT_FOLDER_NAME_TEMPLATE
 
@@ -265,7 +265,7 @@ class FileAccessView(APIView):
 
     def get(self, request, format=None):
         path = request.path
-        url = path.replace(BASE_URL, '', 1)
+        url = path.replace(BASE_PROTECTED_URL, '', 1)
         person = request.person
         if File.objects.filter(upload=url).exists():
             file_object = File.objects.get(upload=url)
