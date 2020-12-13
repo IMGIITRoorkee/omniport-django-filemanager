@@ -18,6 +18,6 @@ urlpatterns = [
     path(r'shared_item/<str:uuid>/<str:item1>/<int:id>/<str:item2>/', ItemSharedView.as_view(), name='shared_item'),
     path(r'all_shared_items/', AllSharedItems.as_view(), name='all_shared_items'),
     path(r'all_starred_items/', AllStarredItems.as_view(), name='all_starred_items')
-] + static(settings.MEDIA_URL, document_root = settings.PERSONAL_ROOT)
+]
 
 urlpatterns += router.urls
