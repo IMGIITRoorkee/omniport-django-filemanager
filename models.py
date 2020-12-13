@@ -54,7 +54,7 @@ class FileManager(Model):
     )
 
     logo = models.ImageField(
-        upload_to=UploadTo('', 'filemanager_logos', file_manager=False),
+        upload_to=UploadTo('', 'filemanager_logos', file_manager=True),
         storage=personal_storage,
         null=True
     )
@@ -157,7 +157,7 @@ class Folder(Model):
             return self.root.max_space - self.root.content_size
         else:
             return self.max_space - self.content_size
-    
+
     @property
     def is_filemanager_public(self):
         return self.filemanager.is_public
@@ -246,7 +246,8 @@ class File(Model):
     def belongs_to(self):
         return self.folder.person
 
-    def file_relative_path(self):
+    @property
+    def path(self):
         return self.upload.name
 
     def __str__(self):

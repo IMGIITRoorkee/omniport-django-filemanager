@@ -272,8 +272,13 @@ class FileAccessView(APIView):
             if (file_object.belongs_to() == person) or (person in file_object.shared_users.all()):
                 response = HttpResponse(status=200)
                 response['Content-Type'] = ''
-                response['X-Accel-Redirect'] = '/personal/{}'.format(url)
+                response['X-Accel-Redirect'] = '/external/{}'.format(url)
                 return response
+        if FileManager.objects.filter(logo=url).exists():
+            response = HttpResponse(status=200)
+            response['Content-Type'] = ''
+            response['X-Accel-Redirect'] = '/external/{}'.format(url)
+            return response
 
         response = HttpResponse(status=404)
         return response
