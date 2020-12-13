@@ -21,7 +21,7 @@ class FileSerializer(ModelSerializer):
     Serializer for File object
     """
 
-    path = serializers.SerializerMethodField()
+    path = serializers.ReadOnlyField()
     shared_users = AvatarSerializer(many=True, read_only=True)
     folder = subFolderSerializer()
 
@@ -30,8 +30,6 @@ class FileSerializer(ModelSerializer):
         fields = '__all__'
         read_only_fields = ['shared_users']
 
-    def get_path(self, obj):
-        return obj.file_relative_path()
 
 
 class FolderSerializer(ModelSerializer):
