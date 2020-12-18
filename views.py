@@ -17,7 +17,8 @@ from kernel.permissions.omnipotence import HasOmnipotenceRights
 from django_filemanager.serializers import FileSerializer, subFolderSerializer, FolderSerializer, rootFolderSerializer, FileManagerSerializer
 from django_filemanager.constants import ACCEPT, REJECT, REQUEST_STATUS_MAP, BATCH_SIZE
 from django_filemanager.models import Folder, File, FileManager, BASE_PROTECTED_URL
-from django_filemanager.permissions import HasItemPermissions, HasFolderOwnerPermission, HasFoldersOwnerPermission, HasFileOwnerPermission, HasFilesOwnerPermission
+from django_filemanager.utils import update_root_folders
+from django_filemanager.permissions import HasItemPermissions, HasFolderOwnerPermission, HasFoldersOwnerPermission, HasFileOwnerPermission, HasFilesOwnerPermission, HasRootFolderPermission
 from django_filemanager.constants import SHARED, STARRED, DEFAULT_ROOT_FOLDER_NAME_TEMPLATE
 
 
@@ -32,6 +33,7 @@ class FolderViewSet(viewsets.ModelViewSet):
     permission_classes_by_action = {
         'get_data_request': [HasOmnipotenceRights],
         'handle_request': [HasOmnipotenceRights],
+        'get_root':[HasRootFolderPermission],
         'destroy': [HasFolderOwnerPermission],
         'bulk_delete': [HasFoldersOwnerPermission],
         'default': [IsAuthenticated],
@@ -57,76 +59,45 @@ class FolderViewSet(viewsets.ModelViewSet):
         except:
             return Response("Filemanager instance with given name doesnot exists", status=status.HTTP_400_BAD_REQUEST)
         person = self.request.person
-        for filemanager in FileManager.objects.all():
-            try:
-                folder = Folder.objects.get(
-                    person=person, root=None, parent=None, filemanager=filemanager)
-            except Folder.DoesNotExist:
-                code = compile(filemanager.filemanager_access_permissions,'<bool>','eval')
-                if(eval(code)):
-                    folder = Folder(person=person, root=None,
-                                    parent=None, content_size=0, max_space=filemanager.max_space, filemanager=filemanager)
-                    folder.save()
-
-                    folder = Folder.objects.get(
-                        person=person, root=None, parent=None)
-            except Folder.MultipleObjectsReturned:
-                return Response("more than one root folder found for same person", status=status.HTTP_409_CONFLICT)
-        serializer = self.serializer_class(folder)
-        return Response(serializer.data)
+        self.check_object_permissions(self.request, filemanager)
+        update_root_folders_response = update_root_folders(person)
+        if update_root_folders_response['status']==200:
+            folder = Folder.objects.get(
+                person=person, root=None, parent=None, filemanager=filemanager)
+            serializer = self.serializer_class(folder)
+            return Response(serializer.data)
+        else:
+            return Response(update_root_folders_response['message'], update_root_folders_response['status'])
 
     @action(detail=False, methods=['get'])
     def get_root_folders(self, request):
         person = self.request.person
-        for filemanager in FileManager.objects.all():
-            try:
-                folder = Folder.objects.get(
-                    person=person, root=None, parent=None, filemanager=filemanager)
-            except Folder.DoesNotExist:
-                code = compile(filemanager.filemanager_access_permissions,'<bool>','eval')
-                if(eval(code)):
-                    folder = Folder(person=person, root=None,
-                                    parent=None, content_size=0, max_space=filemanager.max_space, filemanager=filemanager)
-                    folder.save()
-
-                    folder = Folder.objects.get(
-                        person=person, root=None, parent=None)
-            except Folder.MultipleObjectsReturned:
-                return Response("more than one root folder found for same person", status=status.HTTP_409_CONFLICT)
-                        
-        folders = Folder.objects.filter(
-            person=person, parent=None
-        )
-        serializer = rootFolderSerializer(
-            folders, many=True
-        )
-        return Response(serializer.data)
+        update_root_folders_response = update_root_folders(person)
+        if update_root_folders_response['status']==200:
+            folders = Folder.objects.filter(
+                person=person, parent=None
+            )
+            serializer = rootFolderSerializer(
+                folders, many=True
+            )
+            return Response(serializer.data)
+        else:
+            return Response(update_root_folders_response['message'], update_root_folders_response['status'])                        
 
     @action(detail=False, methods=['get'])
     def shared_with_me(self, request):
         person = self.request.person
-        for filemanager in FileManager.objects.all():
-            try:
-                folder = Folder.objects.get(
-                    person=person, root=None, parent=None, filemanager=filemanager)
-            except Folder.DoesNotExist:
-                code = compile(filemanager.filemanager_access_permissions,'<bool>','eval')
-                if(eval(code)):
-                    folder = Folder(person=person, root=None,
-                                    parent=None, content_size=0, max_space=filemanager.max_space, filemanager=filemanager)
-                    folder.save()
-
-                    folder = Folder.objects.get(
-                        person=person, root=None, parent=None)
-            except Folder.MultipleObjectsReturned:
-                return Response("more than one root folder found for same person", status=status.HTTP_409_CONFLICT)
-        folders = Folder.objects.filter(
-            shared_users=person
-        )
-        serializer = FolderSerializer(
-            folders, many=True
-        )
-        return Response(serializer.data)
+        update_root_folders_response = update_root_folders(person)
+        if update_root_folders_response['status']==200:
+            folders = Folder.objects.filter(
+                shared_users=person
+            )
+            serializer = FolderSerializer(
+                folders, many=True
+            )
+            return Response(serializer.data)
+        else:
+            return Response(update_root_folders_response['message'], update_root_folders_response['status'])                        
 
     @action(detail=True, methods=['post'])
     def generate_data_request(self, request, pk):
@@ -496,42 +467,30 @@ class AllSharedItems(APIView):
         except:
             return Response("Filemanager instance with given name doesnot exists", status=status.HTTP_400_BAD_REQUEST)
         person = self.request.person
-        for filemanager in FileManager.objects.all():
-            try:
-                folder = Folder.objects.get(
-                    person=person, root=None, parent=None, filemanager=filemanager)
-            except Folder.DoesNotExist:
-                code = compile(filemanager.filemanager_access_permissions,'<bool>','eval')
-                if(eval(code)):
-                    folder = Folder(person=person, root=None,
-                                    parent=None, content_size=0, max_space=filemanager.max_space, filemanager=filemanager)
-                    folder.save()
-
-                    folder = Folder.objects.get(
-                        person=person, root=None, parent=None)
-            except Folder.MultipleObjectsReturned:
-                return Response("more than one root folder found for same person", status=status.HTTP_409_CONFLICT)
-        files_shared = File.objects.filter(
-            folder__filemanager=filemanager).filter(shared_users=person
-                                                    )
-        files = FileSerializer(
-            files_shared, many=True
-        )
-        folders_shared = Folder.objects.filter(
-            filemanager=filemanager).filter(shared_users=person
-                                            )
-        folders = FolderSerializer(
-            folders_shared, many=True
-        )
-        serializer = {
-            'files': files.data,
-            'folders': folders.data,
-            'type': SHARED,
-            'filemanager': filemanager_name,
-            'filemanagername': filemanager.filemanager_name
-        }
-        return Response(serializer)
-
+        update_root_folders_response = update_root_folders(person)
+        if update_root_folders_response['status']==200:
+            files_shared = File.objects.filter(
+                folder__filemanager=filemanager).filter(shared_users=person
+                                                        )
+            files = FileSerializer(
+                files_shared, many=True
+            )
+            folders_shared = Folder.objects.filter(
+                filemanager=filemanager).filter(shared_users=person
+                                                )
+            folders = FolderSerializer(
+                folders_shared, many=True
+            )
+            serializer = {
+                'files': files.data,
+                'folders': folders.data,
+                'type': SHARED,
+                'filemanager': filemanager_name,
+                'filemanagername': filemanager.filemanager_name
+            }
+            return Response(serializer)
+        else:
+            return Response(update_root_folders_response['message'], update_root_folders_response['status'])
 
 class AllStarredItems(APIView):
     """
@@ -617,36 +576,38 @@ class FileManagerViewSet(viewsets.ModelViewSet):
                 logo=request.data.get("logo"),
                 is_public=bool(request.data.get("is_public"))
             )
-            serializer = FileManagerSerializer(filemanager)
-            return Response(serializer.data)
         except:
             return Response("Unable to create filemanager", status=404)
 
-        # try:
-        #     obj = {'Student': Q(student=None), 'FacultyMember': Q(facultymember=None),
-        #            'Maintainer': Q(maintainer=None), 'Guest': Q(guest=None)}
-        #     q = obj[filemanager.filemanager_access_roles[0]]
-        #     for i in range(1, len(filemanager_access_roles)):
-        #         q = q & obj[filemanager_access_roles[i]]
+        try:
+            people = Person.objects.all()
+            batch = []
+            for i in range(0, len(people)):
+                person = people[i]
+                try:
+                    unique_name = eval(filemanager.folder_name_template)
+                except:
+                    filemanager.delete()
+                    return Response("Unable to evaluate folder name template", status=400)
+                try:
+                    code = compile(filemanager.filemanager_access_permissions, '<bool>', 'eval')
+                    filemanager_access_permission = eval(code)
+                except:
+                    filemanager.delete()
+                    return Response("Unable to evaluate filemanager access permission", status=400)
 
-        #     people = Person.objects.exclude(q)
-        #     batch = []
-        #     for i in range(0, len(people)):
-        #         try:
-        #             person = people[i]
-        #             unique_name = eval(filemanager.folder_name_template)
-        #         except Exception:
-        #             unique_name = person.user.username
-        #         new_root_folder = Folder(filemanager=filemanager,
-        #                                  folder_name=unique_name,
-        #                                  person=people[i],
-        #                                  max_space=filemanager.max_space,
-        #                                  starred=False,
-        #                                  parent=None,
-        #                                  )
-        #         batch.append(new_root_folder)
-        #     folders = Folder.objects.bulk_create(batch, 20)
-        #     serializer = FolderSerializer(folders, many=True)
-        #     return Response(serializer.data)
-        # except:
-        #     return Response("Filemanager created. Error in assigning root folders", status=404)
+                if filemanager_access_permission:    
+                    new_root_folder = Folder(filemanager=filemanager,
+                                            folder_name=unique_name,
+                                            person=people[i],
+                                            max_space=filemanager.max_space,
+                                            starred=False,
+                                            root=None,
+                                            parent=None,
+                                            )
+                    batch.append(new_root_folder)
+            folders = Folder.objects.bulk_create(batch, 20)
+            serializer = FolderSerializer(folders, many=True)
+            return Response(serializer.data)
+        except:
+            return Response("Filemanager created. Error in assigning root folders", status=404)
