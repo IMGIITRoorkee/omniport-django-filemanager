@@ -131,3 +131,17 @@ class HasFilesOwnerPermission(permissions.IsAuthenticated):
             if (not obj.folder.person.user) or obj.folder.person.user != user:
                 return False
         return True
+
+class HasRootFolderPermission(permissions.IsAuthenticated):
+    def has_object_permission(self, request, view, filemanager):
+        """
+            Checks if the user has access_permissions for filemanager
+        """
+        person = request.person
+        try:
+            code = compile(filemanager.filemanager_access_permissions,'<bool>','eval')
+            if(eval(code)):
+                return True
+        except:
+            return False
+        return False
