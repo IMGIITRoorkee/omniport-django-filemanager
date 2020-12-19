@@ -14,6 +14,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from kernel.models import Person
 from kernel.permissions.omnipotence import HasOmnipotenceRights
+from kernel.managers.get_role import get_all_roles
 from django_filemanager.serializers import FileSerializer, subFolderSerializer, FolderSerializer, rootFolderSerializer, FileManagerSerializer
 from django_filemanager.constants import ACCEPT, REJECT, REQUEST_STATUS_MAP, BATCH_SIZE
 from django_filemanager.models import Folder, File, FileManager, BASE_PROTECTED_URL
