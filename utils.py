@@ -1,5 +1,5 @@
 from django_filemanager.models import Folder, FileManager
-
+from kernel.managers.get_role import get_all_roles
 
 def update_root_folders(person):
     for filemanager in FileManager.objects.all():
@@ -10,13 +10,13 @@ def update_root_folders(person):
             try:
                 unique_name = eval(filemanager.folder_name_template)
             except:
-                return dict({'status':400, 'message':"Update your profile to use all filemanagers"})
+                return dict({'status':400, 'message':f"{filemanager} : problem in evaluating folder name template"})
             try:
                 code = compile(
                     filemanager.filemanager_access_permissions, '<bool>', 'eval')
                 filemanager_access_permission = eval(code)
             except:
-                return dict({'status':400, 'message':"Update your profile to use all filemanagers"})
+                return dict({'status':400, 'message':f"{filemanager} : problem in evaluating access permission"})
 
             if filemanager_access_permission:
                 try:

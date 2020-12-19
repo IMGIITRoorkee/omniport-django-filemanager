@@ -3,6 +3,7 @@ from django_filemanager.models import Folder, File, FileManager
 from django.core.exceptions import ValidationError
 from kernel.models import Person
 from kernel.utils.rights import has_omnipotence_rights
+from kernel.managers.get_role import get_all_roles
 
 
 class HasItemPermissions(permissions.BasePermission):
