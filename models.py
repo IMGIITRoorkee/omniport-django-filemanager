@@ -41,7 +41,7 @@ class FileManager(Model):
         max_length=200, null=True
     )
 
-    filemanager_access_permissions = models.TextField()
+    filemanager_access_permissions = models.TextField(default="True")
 
     filemanager_extra_space_options = fields.ArrayField(
         models.BigIntegerField(),

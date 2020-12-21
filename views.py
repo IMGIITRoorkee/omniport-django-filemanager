@@ -34,7 +34,7 @@ class FolderViewSet(viewsets.ModelViewSet):
     permission_classes_by_action = {
         'get_data_request': [HasOmnipotenceRights],
         'handle_request': [HasOmnipotenceRights],
-        'get_root':[HasRootFolderPermission],
+        'get_root': [HasRootFolderPermission],
         'destroy': [HasFolderOwnerPermission],
         'bulk_delete': [HasFoldersOwnerPermission],
         'default': [IsAuthenticated],
@@ -62,7 +62,7 @@ class FolderViewSet(viewsets.ModelViewSet):
         person = self.request.person
         self.check_object_permissions(self.request, filemanager)
         update_root_folders_response = update_root_folders(person)
-        if update_root_folders_response['status']==200:
+        if update_root_folders_response['status'] == 200:
             folder = Folder.objects.get(
                 person=person, root=None, parent=None, filemanager=filemanager)
             serializer = self.serializer_class(folder)
@@ -74,7 +74,7 @@ class FolderViewSet(viewsets.ModelViewSet):
     def get_root_folders(self, request):
         person = self.request.person
         update_root_folders_response = update_root_folders(person)
-        if update_root_folders_response['status']==200:
+        if update_root_folders_response['status'] == 200:
             folders = Folder.objects.filter(
                 person=person, parent=None
             )
@@ -83,13 +83,13 @@ class FolderViewSet(viewsets.ModelViewSet):
             )
             return Response(serializer.data)
         else:
-            return Response(update_root_folders_response['message'], update_root_folders_response['status'])                        
+            return Response(update_root_folders_response['message'], update_root_folders_response['status'])
 
     @action(detail=False, methods=['get'])
     def shared_with_me(self, request):
         person = self.request.person
         update_root_folders_response = update_root_folders(person)
-        if update_root_folders_response['status']==200:
+        if update_root_folders_response['status'] == 200:
             folders = Folder.objects.filter(
                 shared_users=person
             )
@@ -98,7 +98,7 @@ class FolderViewSet(viewsets.ModelViewSet):
             )
             return Response(serializer.data)
         else:
-            return Response(update_root_folders_response['message'], update_root_folders_response['status'])                        
+            return Response(update_root_folders_response['message'], update_root_folders_response['status'])
 
     @action(detail=True, methods=['post'])
     def generate_data_request(self, request, pk):
@@ -469,7 +469,7 @@ class AllSharedItems(APIView):
             return Response("Filemanager instance with given name doesnot exists", status=status.HTTP_400_BAD_REQUEST)
         person = self.request.person
         update_root_folders_response = update_root_folders(person)
-        if update_root_folders_response['status']==200:
+        if update_root_folders_response['status'] == 200:
             files_shared = File.objects.filter(
                 folder__filemanager=filemanager).filter(shared_users=person
                                                         )
@@ -492,6 +492,7 @@ class AllSharedItems(APIView):
             return Response(serializer)
         else:
             return Response(update_root_folders_response['message'], update_root_folders_response['status'])
+
 
 class AllStarredItems(APIView):
     """
@@ -559,6 +560,7 @@ class FileManagerViewSet(viewsets.ModelViewSet):
     permission_classes = [HasOmnipotenceRights]
 
     def create(self, request, *args, **kwargs):
+        is_public = request.data.get("is_public")
         try:
             folder_name_template = request.data.get(
                 "folder_name_template", None)
@@ -569,13 +571,14 @@ class FileManagerViewSet(viewsets.ModelViewSet):
             filemanager = FileManager.objects.create(
                 filemanager_name=request.data.get("filemanager_name"),
                 folder_name_template=folder_name_template,
-                filemanager_access_permissions=str(filemanager_access_permissions),
+                filemanager_access_permissions=str(
+                    filemanager_access_permissions),
                 filemanager_extra_space_options=request.data.getlist(
                     "filemanager_extra_space_options"
                 ),
                 max_space=request.data.get("max_space"),
                 logo=request.data.get("logo"),
-                is_public=bool(request.data.get("is_public"))
+                is_public=is_public == "True" or is_public == "true"
             )
         except:
             return Response("Unable to create filemanager", status=404)
@@ -591,21 +594,22 @@ class FileManagerViewSet(viewsets.ModelViewSet):
                     filemanager.delete()
                     return Response("Unable to evaluate folder name template", status=400)
                 try:
-                    code = compile(filemanager.filemanager_access_permissions, '<bool>', 'eval')
+                    code = compile(
+                        filemanager.filemanager_access_permissions, '<bool>', 'eval')
                     filemanager_access_permission = eval(code)
                 except:
                     filemanager.delete()
                     return Response("Unable to evaluate filemanager access permission", status=400)
 
-                if filemanager_access_permission:    
+                if filemanager_access_permission:
                     new_root_folder = Folder(filemanager=filemanager,
-                                            folder_name=unique_name,
-                                            person=people[i],
-                                            max_space=filemanager.max_space,
-                                            starred=False,
-                                            root=None,
-                                            parent=None,
-                                            )
+                                             folder_name=unique_name,
+                                             person=people[i],
+                                             max_space=filemanager.max_space,
+                                             starred=False,
+                                             root=None,
+                                             parent=None,
+                                             )
                     batch.append(new_root_folder)
             folders = Folder.objects.bulk_create(batch, 20)
             serializer = FolderSerializer(folders, many=True)
