@@ -13,6 +13,9 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated
 
 from kernel.models import Person
+from shell.models import Student, FacultyMember
+from shell.models.roles.maintainer import Maintainer
+
 from kernel.permissions.omnipotence import HasOmnipotenceRights
 from kernel.managers.get_role import get_all_roles
 from django_filemanager.serializers import FileSerializer, subFolderSerializer, FolderSerializer, rootFolderSerializer, FileManagerSerializer
@@ -589,11 +592,6 @@ class FileManagerViewSet(viewsets.ModelViewSet):
             for i in range(0, len(people)):
                 person = people[i]
                 try:
-                    unique_name = eval(filemanager.folder_name_template)
-                except:
-                    filemanager.delete()
-                    return Response("Unable to evaluate folder name template", status=400)
-                try:
                     code = compile(
                         filemanager.filemanager_access_permissions, '<bool>', 'eval')
                     filemanager_access_permission = eval(code)
@@ -602,6 +600,13 @@ class FileManagerViewSet(viewsets.ModelViewSet):
                     return Response("Unable to evaluate filemanager access permission", status=400)
 
                 if filemanager_access_permission:
+                    try:
+                        print(filemanager.folder_name_template)
+                        print(FacultyMember.objects.get(person=person).__dict__)
+                        unique_name = eval(filemanager.folder_name_template)
+                    except:
+                        filemanager.delete()
+                        return Response("Unable to evaluate folder name template", status=400)
                     new_root_folder = Folder(filemanager=filemanager,
                                              folder_name=unique_name,
                                              person=people[i],
