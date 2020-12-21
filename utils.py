@@ -1,5 +1,8 @@
 from django_filemanager.models import Folder, FileManager
 from kernel.managers.get_role import get_all_roles
+from kernel.models import Person
+from shell.models import Student, FacultyMember
+from shell.models.roles.maintainer import Maintainer
 
 
 def update_root_folders(person):
@@ -39,5 +42,5 @@ def update_root_folders(person):
                     return dict({'status': 400, 'message': "Unable to create root folder"})
             else:
                 return dict({'status': 403, 'message': "not allowed"})
-    
+
     return dict({'status': 200, 'message': "found filemanagers"})
