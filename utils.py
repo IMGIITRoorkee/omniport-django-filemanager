@@ -12,10 +12,6 @@ def update_root_folders(person):
                 person=person, root=None, parent=None, filemanager=filemanager)
         except Folder.DoesNotExist:
             try:
-                unique_name = eval(filemanager.folder_name_template)
-            except:
-                return dict({'status': 400, 'message': f"{filemanager} : problem in evaluating folder name template"})
-            try:
                 code = compile(
                     filemanager.filemanager_access_permissions, '<bool>', 'eval')
                 filemanager_access_permission = eval(code)
@@ -23,6 +19,10 @@ def update_root_folders(person):
                 return dict({'status': 400, 'message': f"{filemanager} : problem in evaluating access permission"})
 
             if filemanager_access_permission:
+                try:
+                    unique_name = eval(filemanager.folder_name_template)
+                except:
+                    return dict({'status': 400, 'message': f"{filemanager} : problem in evaluating folder name template"})
                 try:
                     folder = Folder(filemanager=filemanager,
                                     folder_name=unique_name,
@@ -37,10 +37,7 @@ def update_root_folders(person):
                     folder = Folder.objects.get(
                         person=person, root=None, parent=None)
 
-                    return dict({'status': 200, 'message': "updated filemanagers"})
                 except:
                     return dict({'status': 400, 'message': "Unable to create root folder"})
-            else:
-                return dict({'status': 403, 'message': "not allowed"})
 
     return dict({'status': 200, 'message': "found filemanagers"})
