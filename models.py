@@ -11,8 +11,8 @@ from django.conf import settings
 from django.contrib.postgres import fields
 
 from formula_one.models.base import Model
-from formula_one.utils.upload_to import UploadTo
 
+from django_filemanager.upload_to import UploadTo
 from django_filemanager import constants
 
 BASE_PROTECTED_URL = '/api/django_filemanager/media_files/'
