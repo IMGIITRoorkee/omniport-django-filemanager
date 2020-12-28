@@ -2,13 +2,18 @@ from rest_framework import serializers
 
 from formula_one.serializers.base import ModelSerializer
 from django_filemanager.models import Folder, File, FileManager
-from kernel.serializers.person import AvatarSerializer
+from kernel.models import Person
 
+class PersonSerializer(ModelSerializer):
+
+    class Meta:
+        model = Person
+        fields = ['id', 'display_picture', 'full_name']
 
 class subFolderSerializer(ModelSerializer):
     filemanagername = serializers.ReadOnlyField()
-    person = AvatarSerializer(read_only=True)
-    shared_users = AvatarSerializer(many=True, read_only=True)
+    person = PersonSerializer(read_only=True)
+    shared_users = PersonSerializer(many=True, read_only=True)
     is_filemanager_public = serializers.ReadOnlyField()
 
     class Meta:
@@ -22,7 +27,7 @@ class FileSerializer(ModelSerializer):
     """
 
     path = serializers.ReadOnlyField()
-    shared_users = AvatarSerializer(many=True, read_only=True)
+    shared_users = PersonSerializer(many=True, read_only=True)
     folder = subFolderSerializer()
     file_url = serializers.ReadOnlyField()
 
@@ -41,8 +46,8 @@ class FolderSerializer(ModelSerializer):
     files = FileSerializer(many=True,  read_only=True)
     folders = subFolderSerializer(read_only=True, many=True)
     filemanagername = serializers.ReadOnlyField()
-    person = AvatarSerializer(read_only=True)
-    shared_users = AvatarSerializer(many=True, read_only=True)
+    person = PersonSerializer(read_only=True)
+    shared_users = PersonSerializer(many=True, read_only=True)
     is_filemanager_public = serializers.ReadOnlyField()
 
     class Meta:
@@ -76,7 +81,7 @@ class FileManagerSerializer(ModelSerializer):
 
 
 class rootFolderSerializer(ModelSerializer):
-    person = AvatarSerializer(read_only=True)
+    person = PersonSerializer(read_only=True)
     filemanager = FileManagerSerializer(read_only=True)
 
     class Meta:

@@ -187,10 +187,10 @@ class FolderViewSet(viewsets.ModelViewSet):
                         id=user)
                     folder.shared_users.add(person)
                 return HttpResponse("Folder shared with the users", status=status.HTTP_200_OK)
-            except:
-                return HttpResponse("Error occured while updating users", status=status.HTTP_400_BAD_REQUEST)
-        except:
-            return HttpResponse("Unable to change shared_user", status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                return HttpResponse(f"Error occured while updating users due to {e}", status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return HttpResponse(f"Unable to change shared_user due to {e}", status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['post'])
     def bulk_delete(self, request, *args, **kwargs):
@@ -216,8 +216,8 @@ class FolderViewSet(viewsets.ModelViewSet):
                 parent = parent.parent
             folders.delete()
             return HttpResponse(status=status.HTTP_204_NO_CONTENT)
-        except:
-            return HttpResponse("error in deliting folders", status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return HttpResponse(f"error in deliting folders due to {e}", status=status.HTTP_400_BAD_REQUEST)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -404,8 +404,8 @@ class FileView(viewsets.ModelViewSet):
 
             files.delete()
             return HttpResponse(status=status.HTTP_204_NO_CONTENT)
-        except:
-            return HttpResponse("error in deleting files", status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return HttpResponse(f"error in deleting files due to {e}", status=status.HTTP_400_BAD_REQUEST)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -455,10 +455,10 @@ class FileView(viewsets.ModelViewSet):
                         id=user)
                     file.shared_users.add(person)
                 return HttpResponse("File shared with the users", status=status.HTTP_200_OK)
-            except:
-                return HttpResponse("Error occured while updating users", status=status.HTTP_400_BAD_REQUEST)
-        except:
-            return HttpResponse("Unable to change shared_user", status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                return HttpResponse(f"Error occured while updating users due to {e}", status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return HttpResponse(f"Unable to change shared_user due to {e}", status=status.HTTP_400_BAD_REQUEST)
 
 
 class AllSharedItems(APIView):
@@ -583,8 +583,8 @@ class FileManagerViewSet(viewsets.ModelViewSet):
                 logo=request.data.get("logo"),
                 is_public=is_public == "True" or is_public == "true"
             )
-        except:
-            return Response("Unable to create filemanager", status=404)
+        except Exception as e:
+            return Response(f"Unable to create filemanager as {e}", status=400)
 
         try:
             people = Person.objects.all()
@@ -601,8 +601,6 @@ class FileManagerViewSet(viewsets.ModelViewSet):
 
                 if filemanager_access_permission:
                     try:
-                        print(filemanager.folder_name_template)
-                        print(FacultyMember.objects.get(person=person).__dict__)
                         unique_name = eval(filemanager.folder_name_template)
                     except:
                         filemanager.delete()
@@ -619,5 +617,5 @@ class FileManagerViewSet(viewsets.ModelViewSet):
             folders = Folder.objects.bulk_create(batch, 20)
             serializer = FolderSerializer(folders, many=True)
             return Response(serializer.data)
-        except:
-            return Response("Filemanager created. Error in assigning root folders", status=404)
+        except Exception as e:
+            return Response(f"Filemanager created. Error in assigning root folders due to {e}", status=400)
