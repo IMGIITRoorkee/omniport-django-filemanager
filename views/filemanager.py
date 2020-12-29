@@ -45,10 +45,10 @@ class FileManagerViewSet(viewsets.ModelViewSet):
                 is_public=is_public == "True" or is_public == "true"
             )
         except:
-            return Response("Unable to create filemanager", status=404)
+            return Response("Unable to create filemanager", status=400)
 
         try:
-            people = Person.objects.all()
+            people = Person.objects.exclude(user=None)
             batch = []
             for i in range(0, len(people)):
                 person = people[i]
@@ -78,4 +78,4 @@ class FileManagerViewSet(viewsets.ModelViewSet):
             folders = Folder.objects.bulk_create(batch, 20)
             return Response(status=200)
         except:
-            return Response("Filemanager created. Error in assigning root folders", status=404)
+            return Response("Filemanager created. Error in assigning root folders", status=400)
