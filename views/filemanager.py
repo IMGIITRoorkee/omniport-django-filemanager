@@ -62,9 +62,6 @@ class FileManagerViewSet(viewsets.ModelViewSet):
 
                 if filemanager_access_permission:
                     try:
-                        print(filemanager.folder_name_template)
-                        print(FacultyMember.objects.get(
-                            person=person).__dict__)
                         unique_name = eval(filemanager.folder_name_template)
                     except:
                         filemanager.delete()
