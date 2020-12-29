@@ -12,14 +12,18 @@ from django.contrib.postgres import fields
 
 from formula_one.models.base import Model
 
+from formula_one.utils.upload_to import UploadTo as FormulaUploadTo
 from django_filemanager.upload_to import UploadTo
 from django_filemanager import constants
 
 BASE_PROTECTED_URL = '/api/django_filemanager/media_files/'
-BASE_PUBLIC_URL = 'https://iitr.ac.in/media/'
 
-personal_storage = FileSystemStorage(
+network_storage = FileSystemStorage(
     location=settings.NETWORK_STORAGE_ROOT,
+    base_url=BASE_PROTECTED_URL,
+)
+personal_storage = FileSystemStorage(
+    location=settings.PERSONAL_ROOT,
     base_url=BASE_PROTECTED_URL,
 )
 
@@ -49,7 +53,7 @@ class FileManager(Model):
     )
 
     logo = models.ImageField(
-        upload_to=UploadTo('', 'filemanager_logos', file_manager=True),
+        upload_to=FormulaUploadTo('', 'filemanager_logos', file_manager=False),
         storage=personal_storage,
         null=True
     )
@@ -59,6 +63,8 @@ class FileManager(Model):
     )
 
     is_public = models.BooleanField(default=False)
+
+    base_public_url = models.TextField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         path = self.filemanager_url_path
@@ -210,7 +216,7 @@ class File(Model):
 
     upload = models.FileField(
         upload_to=UploadTo('', '', file_manager=True),
-        storage=personal_storage,
+        storage=network_storage,
         max_length=1000000
     )
 
@@ -226,10 +232,6 @@ class File(Model):
         on_delete=models.CASCADE,
     )
 
-    is_public = models.BooleanField(
-        default=False,
-    )
-
     permission = models.CharField(
         max_length=10, choices=constants.PERMISSIONS, default="r_o")
 
@@ -241,6 +243,9 @@ class File(Model):
     def belongs_to(self):
         return self.folder.person
 
+    def is_filemanager_public(self):
+        return self.folder.filemanager.is_public
+
     @property
     def path(self):
         return self.upload.name
@@ -249,7 +254,7 @@ class File(Model):
     def file_url(self):
         if(self.folder.filemanager.is_public):
             path = self.upload.name
-            return os.path.join(BASE_PUBLIC_URL, path)
+            return os.path.join(self.folder.filemanager.base_public_url, path)
         else:
             return os.path.join(BASE_PROTECTED_URL, self.upload.name)
 

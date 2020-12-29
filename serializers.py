@@ -4,11 +4,13 @@ from formula_one.serializers.base import ModelSerializer
 from django_filemanager.models import Folder, File, FileManager
 from kernel.models import Person
 
+
 class PersonSerializer(ModelSerializer):
 
     class Meta:
         model = Person
         fields = ['id', 'display_picture', 'full_name']
+
 
 class subFolderSerializer(ModelSerializer):
     filemanagername = serializers.ReadOnlyField()
@@ -30,12 +32,12 @@ class FileSerializer(ModelSerializer):
     shared_users = PersonSerializer(many=True, read_only=True)
     folder = subFolderSerializer()
     file_url = serializers.ReadOnlyField()
+    is_filemanager_public = serializers.ReadOnlyField()
 
     class Meta:
         model = File
         fields = '__all__'
         read_only_fields = ['shared_users']
-
 
 
 class FolderSerializer(ModelSerializer):
