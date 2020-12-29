@@ -25,7 +25,6 @@ class HasItemPermissions(permissions.BasePermission):
                     else:
                         dummy_folder = Folder.objects.get(id=item_id)
                         while dummy_folder.parent != None:
-                            print("running loop")
                             if dummy_folder.parent.id == folder.id:
                                 return True
                             else:
