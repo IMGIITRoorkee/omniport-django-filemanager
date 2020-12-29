@@ -42,10 +42,11 @@ class FileManagerViewSet(viewsets.ModelViewSet):
                 ),
                 max_space=request.data.get("max_space"),
                 logo=request.data.get("logo"),
-                is_public=is_public == "True" or is_public == "true"
+                is_public=is_public == "True" or is_public == "true",
+                base_public_url=request.data.get("base_public_url", None)
             )
-        except:
-            return Response("Unable to create filemanager", status=400)
+        except Exception as e:
+            return Response(f"Unable to create filemanager as {e}", status=400)
 
         try:
             people = Person.objects.exclude(user=None)
@@ -77,5 +78,5 @@ class FileManagerViewSet(viewsets.ModelViewSet):
                     batch.append(new_root_folder)
             folders = Folder.objects.bulk_create(batch, 20)
             return Response(status=200)
-        except:
-            return Response("Filemanager created. Error in assigning root folders", status=400)
+        except Exception as e:
+            return Response(f"Filemanager created. Error in assigning root folders due to {e}", status=400)

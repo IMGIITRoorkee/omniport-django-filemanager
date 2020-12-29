@@ -175,10 +175,10 @@ class FolderViewSet(viewsets.ModelViewSet):
                         id=user)
                     folder.shared_users.add(person)
                 return HttpResponse("Folder shared with the users", status=status.HTTP_200_OK)
-            except:
-                return HttpResponse("Error occured while updating users", status=status.HTTP_400_BAD_REQUEST)
-        except:
-            return HttpResponse("Unable to change shared_user", status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                return HttpResponse(f"Error occured while updating users due to {e}", status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return HttpResponse(f"Unable to change shared_user due to {e}", status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['post'])
     def bulk_delete(self, request, *args, **kwargs):
@@ -204,8 +204,8 @@ class FolderViewSet(viewsets.ModelViewSet):
                 parent = parent.parent
             folders.delete()
             return HttpResponse(status=status.HTTP_204_NO_CONTENT)
-        except:
-            return HttpResponse("error in deliting folders", status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return HttpResponse(f"error in deliting folders due to {e}", status=status.HTTP_400_BAD_REQUEST)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()

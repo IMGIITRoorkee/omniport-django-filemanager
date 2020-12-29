@@ -36,7 +36,7 @@ class FileAccessView(APIView):
         if FileManager.objects.filter(logo=url).exists():
             response = HttpResponse(status=200)
             response['Content-Type'] = ''
-            response['X-Accel-Redirect'] = '/external/{}'.format(url)
+            response['X-Accel-Redirect'] = '/personal/{}'.format(url)
             return response
 
         response = HttpResponse(status=404)
@@ -91,7 +91,7 @@ class FileView(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def bulk_create(self, request, *args, **kwargs):
         data = dict(request.data)
-        no_of_files = len(data.get("is_public"))
+        no_of_files = len(data.get("file_name"))
         batch = []
         try:
             folder = Folder.objects.get(pk=int(data.get("folder")[0]))
@@ -115,11 +115,9 @@ class FileView(viewsets.ModelViewSet):
             parent_folder = parent_folder.parent
 
         for i in range(0, no_of_files):
-            is_public = data.get("is_public")[i] == 'True'
             starred = data.get("starred")[i] == 'True'
             new_file = File(upload=data.get("upload")[i],
                             file_name=data.get("file_name")[i],
-                            is_public=is_public,
                             extension=data.get("extension")[i],
                             starred=starred,
                             size=int(data.get("size")[i]),
@@ -158,8 +156,8 @@ class FileView(viewsets.ModelViewSet):
 
             files.delete()
             return HttpResponse(status=status.HTTP_204_NO_CONTENT)
-        except:
-            return HttpResponse("error in deleting files", status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return HttpResponse(f"error in deleting files due to {e}", status=status.HTTP_400_BAD_REQUEST)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -209,7 +207,7 @@ class FileView(viewsets.ModelViewSet):
                         id=user)
                     file.shared_users.add(person)
                 return HttpResponse("File shared with the users", status=status.HTTP_200_OK)
-            except:
-                return HttpResponse("Error occured while updating users", status=status.HTTP_400_BAD_REQUEST)
-        except:
-            return HttpResponse("Unable to change shared_user", status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                return HttpResponse(f"Error occured while updating users due to {e}", status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return HttpResponse(f"Unable to change shared_user due to {e}", status=status.HTTP_400_BAD_REQUEST)
