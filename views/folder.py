@@ -49,7 +49,7 @@ class FolderViewSet(viewsets.ModelViewSet):
             filemanager = FileManager.objects.get(
                 filemanager_url_path=filemanager_name)
         except:
-            return Response("Filemanager instance with given name doesnot exists", status=status.HTTP_400_BAD_REQUEST)
+            return Response('Filemanager instance with given name doesnot exists', status=status.HTTP_400_BAD_REQUEST)
         person = self.request.person
         self.check_object_permissions(self.request, filemanager)
         update_root_folders_response = update_root_folders(person)
@@ -96,11 +96,11 @@ class FolderViewSet(viewsets.ModelViewSet):
         try:
             folder = Folder.objects.get(pk=pk)
         except Folder.DoesNotExist:
-            return HttpResponse("Folder Not available", status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse('Folder Not available', status=status.HTTP_400_BAD_REQUEST)
 
-        additional_space = request.data.get("additional_space")
+        additional_space = request.data.get('additional_space')
         if additional_space == None:
-            return HttpResponse("additional_space keyword required", status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse('additional_space keyword required', status=status.HTTP_400_BAD_REQUEST)
         folder.additional_space = additional_space
         folder.data_request_status = '1'
         folder.save()
@@ -113,12 +113,12 @@ class FolderViewSet(viewsets.ModelViewSet):
             root=None,  parent=None
         ).exclude(data_request_status=REQUEST_STATUS_MAP['not_made'])
         params = request.GET
-        if "data_request_status" in params.keys():
+        if 'data_request_status' in params.keys():
             status = params['data_request_status']
             if status in REQUEST_STATUS_MAP.keys():
                 folders = folders.filter(
                     data_request_status=REQUEST_STATUS_MAP[status])
-        if "data_request_status!" in params.keys():
+        if 'data_request_status!' in params.keys():
             status = params['data_request_status!']
             if status in REQUEST_STATUS_MAP.keys():
                 folders = folders.exclude(
@@ -132,24 +132,24 @@ class FolderViewSet(viewsets.ModelViewSet):
         try:
             folder = Folder.objects.get(pk=pk)
         except Folder.DoesNotExist:
-            return HttpResponse("Folder Not available", status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse('Folder Not available', status=status.HTTP_400_BAD_REQUEST)
 
-        response = request.data.get("response")
+        response = request.data.get('response')
         if response == None:
-            return HttpResponse("response required", status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse('response required', status=status.HTTP_400_BAD_REQUEST)
         if response == ACCEPT:
             folder.max_space = folder.max_space + folder.additional_space
-            folder.data_request_status = "2"
+            folder.data_request_status = '2'
             folder.save()
             serializer = rootFolderSerializer(folder)
             return Response(serializer.data)
         elif response == REJECT:
-            folder.data_request_status = "3"
+            folder.data_request_status = '3'
             folder.save()
             serializer = rootFolderSerializer(folder)
             return Response(serializer.data)
         else:
-            return HttpResponse("Wrong type of response", status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse('Wrong type of response', status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['PATCH'], )
     def update_shared_users(self, request, *args, **kwargs):
@@ -157,7 +157,7 @@ class FolderViewSet(viewsets.ModelViewSet):
         try:
             folder = Folder.objects.get(pk=pk)
         except Folder.DoesNotExist:
-            return HttpResponse("Folder Not available", status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse('Folder Not available', status=status.HTTP_400_BAD_REQUEST)
 
         try:
             shared_users = list(
@@ -174,23 +174,23 @@ class FolderViewSet(viewsets.ModelViewSet):
                     person = Person.objects.get(
                         id=user)
                     folder.shared_users.add(person)
-                return HttpResponse("Folder shared with the users", status=status.HTTP_200_OK)
+                return HttpResponse('Folder shared with the users', status=status.HTTP_200_OK)
             except Exception as e:
-                return HttpResponse(f"Error occured while updating users due to {e}", status=status.HTTP_400_BAD_REQUEST)
+                return HttpResponse(f'Error occured while updating users due to {e}', status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            return HttpResponse(f"Unable to change shared_user due to {e}", status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse(f'Unable to change shared_user due to {e}', status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['post'])
     def bulk_delete(self, request, *args, **kwargs):
         data = dict(request.data)
         try:
-            arr = data["folder_id_arr"]
+            arr = data['folder_id_arr']
         except KeyError:
-            return HttpResponse("folder ids not found.", status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse('folder ids not found.', status=status.HTTP_400_BAD_REQUEST)
 
         folders = Folder.objects.filter(pk__in=arr)
         if len(folders) == 0:
-            return HttpResponse("no folder ids given", status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse('no folder ids given', status=status.HTTP_400_BAD_REQUEST)
         self.check_object_permissions(self.request, folders)
         total_folder_size = 0
         for folder in folders:
@@ -205,7 +205,7 @@ class FolderViewSet(viewsets.ModelViewSet):
             folders.delete()
             return HttpResponse(status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
-            return HttpResponse(f"error in deliting folders due to {e}", status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse(f'error in deliting folders due to {e}', status=status.HTTP_400_BAD_REQUEST)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -237,7 +237,7 @@ class FolderViewSet(viewsets.ModelViewSet):
         try:
             folder = Folder.objects.get(pk=pk)
         except Folder.DoesNotExist:
-            return HttpResponse("Folder Not available", status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse('Folder Not available', status=status.HTTP_400_BAD_REQUEST)
         self.check_object_permissions(self.request, folder)
         parents = []
         while folder != None:

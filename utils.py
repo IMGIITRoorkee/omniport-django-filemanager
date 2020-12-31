@@ -16,13 +16,13 @@ def update_root_folders(person):
                     filemanager.filemanager_access_permissions, '<bool>', 'eval')
                 filemanager_access_permission = eval(code)
             except:
-                return dict({'status': 400, 'message': f"{filemanager} : problem in evaluating access permission"})
+                return dict({'status': 400, 'message': f'{filemanager} : problem in evaluating access permission'})
 
             if filemanager_access_permission:
                 try:
                     unique_name = eval(filemanager.folder_name_template)
                 except:
-                    return dict({'status': 400, 'message': f"{filemanager} : problem in evaluating folder name template"})
+                    return dict({'status': 400, 'message': f'{filemanager} : problem in evaluating folder name template'})
                 try:
                     folder = Folder(filemanager=filemanager,
                                     folder_name=unique_name,
@@ -38,6 +38,6 @@ def update_root_folders(person):
                         person=person, root=None, parent=None)
 
                 except:
-                    return dict({'status': 400, 'message': "Unable to create root folder"})
+                    return dict({'status': 400, 'message': 'Unable to create root folder'})
 
-    return dict({'status': 200, 'message': "found filemanagers"})
+    return dict({'status': 200, 'message': 'found filemanagers'})
