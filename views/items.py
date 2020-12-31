@@ -34,7 +34,7 @@ class AllSharedItems(APIView):
             filemanager = FileManager.objects.get(
                 filemanager_url_path=filemanager_name)
         except:
-            return Response("Filemanager instance with given name doesnot exists", status=status.HTTP_400_BAD_REQUEST)
+            return Response('Filemanager instance with given name doesnot exists', status=status.HTTP_400_BAD_REQUEST)
         person = self.request.person
         update_root_folders_response = update_root_folders(person)
         if update_root_folders_response['status'] == 200:
@@ -73,7 +73,7 @@ class AllStarredItems(APIView):
             filemanager = FileManager.objects.get(
                 filemanager_url_path=filemanager_name)
         except:
-            return Response("Filemanager instance with given name doesnot exists", status=status.HTTP_400_BAD_REQUEST)
+            return Response('Filemanager instance with given name doesnot exists', status=status.HTTP_400_BAD_REQUEST)
         person = self.request.person
         files_starred = File.objects.filter(
             folder__filemanager=filemanager).filter(folder__person=person).filter(starred=True
@@ -115,4 +115,4 @@ class ItemSharedView(APIView):
             serializer = FileSerializer(file)
             return Response(serializer.data)
         else:
-            return Response("requested wrong item", status=404)
+            return Response('requested wrong item', status=404)

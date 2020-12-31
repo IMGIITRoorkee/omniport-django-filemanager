@@ -37,13 +37,13 @@ class UploadTo:
 
         # Path upto the file
         if self.file_manager:
-            if type(instance).__name__ == "File":
+            if type(instance).__name__ == 'File':
                 folder_name = str(instance.folder.path)
                 self.app_name = str(
                     instance.folder.filemanager.filemanager_name)
             else:
                 folder_name = self.folder_name
-            if type(instance).__name__ == "FileManager":
+            if type(instance).__name__ == 'FileManager':
 
                 if instance.is_public:
                     self.base_location = 'public'
