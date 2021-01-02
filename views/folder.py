@@ -6,6 +6,8 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
+from kernel.models import Person
+
 from kernel.permissions.omnipotence import HasOmnipotenceRights
 from django_filemanager.serializers import subFolderSerializer, FolderSerializer, rootFolderSerializer
 from django_filemanager.constants import ACCEPT, REJECT, REQUEST_STATUS_MAP

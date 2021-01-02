@@ -8,6 +8,8 @@ from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated
 
+from kernel.models import Person
+
 from django_filemanager.serializers import FileSerializer
 from django_filemanager.models import Folder, File, FileManager, BASE_PROTECTED_URL
 from django_filemanager.permissions import HasFileOwnerPermission, HasFilesOwnerPermission
