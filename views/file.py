@@ -13,6 +13,7 @@ from kernel.models import Person
 from django_filemanager.serializers import FileSerializer
 from django_filemanager.models import Folder, File, FileManager, BASE_PROTECTED_URL
 from django_filemanager.permissions import HasFileOwnerPermission, HasFilesOwnerPermission
+from django_filemanager.constants import BATCH_SIZE
 
 
 class FileAccessView(APIView):
@@ -126,7 +127,7 @@ class FileView(viewsets.ModelViewSet):
                             folder=folder,
                             )
             batch.append(new_file)
-        files = File.objects.bulk_create(batch, 20)
+        files = File.objects.bulk_create(batch, BATCH_SIZE[0])
         serializer = self.get_serializer(files, many=True)
         return Response(serializer.data)
 

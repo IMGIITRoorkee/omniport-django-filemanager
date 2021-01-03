@@ -11,7 +11,7 @@ from kernel.permissions.omnipotence import HasOmnipotenceRights
 from kernel.managers.get_role import get_all_roles
 from django_filemanager.serializers import FileManagerSerializer
 from django_filemanager.models import Folder, FileManager
-from django_filemanager.constants import DEFAULT_ROOT_FOLDER_NAME_TEMPLATE
+from django_filemanager.constants import DEFAULT_ROOT_FOLDER_NAME_TEMPLATE, BATCH_SIZE
 
 
 class FileManagerViewSet(viewsets.ModelViewSet):
@@ -76,7 +76,7 @@ class FileManagerViewSet(viewsets.ModelViewSet):
                                              parent=None,
                                              )
                     batch.append(new_root_folder)
-            folders = Folder.objects.bulk_create(batch, 20)
+            folders = Folder.objects.bulk_create(batch, BATCH_SIZE[0])
             return Response(status=200)
         except Exception as e:
             return Response(f"Filemanager created. Error in assigning root folders due to {e}", status=400)
