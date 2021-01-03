@@ -1,7 +1,11 @@
+import os
+
 from rest_framework import serializers
 
+from kernel.managers.get_role import get_all_roles
+
 from formula_one.serializers.base import ModelSerializer
-from django_filemanager.models import Folder, File, FileManager
+from django_filemanager.models import Folder, File, FileManager, BASE_PROTECTED_URL
 from kernel.models import Person
 
 
@@ -31,13 +35,30 @@ class FileSerializer(ModelSerializer):
     path = serializers.ReadOnlyField()
     shared_users = PersonSerializer(many=True, read_only=True)
     folder = subFolderSerializer()
-    file_url = serializers.ReadOnlyField()
+    file_url = serializers.SerializerMethodField()
     is_filemanager_public = serializers.ReadOnlyField()
 
     class Meta:
         model = File
         fields = '__all__'
         read_only_fields = ['shared_users']
+
+    def get_file_url(self, obj):
+        person = None
+        request = self.context.get("request")
+        if request and hasattr(request, "person"):
+            person = request.person
+        if(not obj.folder.filemanager.is_public):
+            return obj.upload.name
+        try:
+            baseUrl = eval(obj.folder.filemanager.base_public_url)
+            remaining_path = obj.upload.name.split("/", 3)[-1]
+            path = os.path.join(baseUrl, remaining_path)
+        except:
+            baseUrl = BASE_PROTECTED_URL
+            remaining_path = obj.upload.name
+            path = os.path.join(baseUrl, remaining_path)
+        return path
 
 
 class FolderSerializer(ModelSerializer):
