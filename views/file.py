@@ -118,6 +118,7 @@ class FileView(viewsets.ModelViewSet):
             parent_folder = parent_folder.parent
 
         for i in range(0, no_of_files):
+            print(data.get("upload")[i])
             starred = data.get("starred")[i] == 'True'
             new_file = File(upload=data.get("upload")[i],
                             file_name=data.get("file_name")[i],
