@@ -35,7 +35,7 @@ class FileManager(Model):
 
     filemanager_name = models.CharField(
         max_length=50,
-        default="undedfined filemanager",
+        default='undedfined filemanager',
     )
     filemanager_url_path = models.CharField(
         max_length=50,
@@ -45,7 +45,7 @@ class FileManager(Model):
         max_length=200, null=True
     )
 
-    filemanager_access_permissions = models.TextField(default="True")
+    filemanager_access_permissions = models.TextField(default='True')
 
     filemanager_extra_space_options = fields.ArrayField(
         models.BigIntegerField(),
@@ -71,7 +71,7 @@ class FileManager(Model):
         if not self.filemanager_url_path:
             path = self.filemanager_name.strip()
         path = path.lower()
-        path = path.replace(" ", "_")
+        path = path.replace(' ', '_')
         self.filemanager_url_path = path
         super().save(*args, **kwargs)
 
@@ -95,7 +95,7 @@ class Folder(Model):
         default=uuid.uuid4, editable=False, db_index=True)
 
     filemanager = models.ForeignKey(
-        related_name="folders",
+        related_name='folders',
         to=FileManager,
         on_delete=models.CASCADE,
     )
@@ -124,7 +124,7 @@ class Folder(Model):
     content_size = models.BigIntegerField(default=0)
 
     parent = models.ForeignKey(
-        "self",
+        'self',
         null=True,
         blank=True,
         related_name='folders',
@@ -142,12 +142,12 @@ class Folder(Model):
     starred = models.BooleanField(default=False)
 
     data_request_status = models.CharField(
-        max_length=10, choices=constants.REQUEST_STATUS, default="0")
+        max_length=10, choices=constants.REQUEST_STATUS, default='0')
 
     additional_space = models.BigIntegerField(default=0)
 
     permission = models.CharField(
-        max_length=10, choices=constants.PERMISSIONS, default="r_o")
+        max_length=10, choices=constants.PERMISSIONS, default='r_o')
 
     path = models.TextField()
 
@@ -204,14 +204,14 @@ class File(Model):
 
     file_name = models.CharField(
         max_length=500,
-        default="undedfined file",
+        default='undedfined file',
     )
 
     size = models.IntegerField(null=False)
 
     extension = models.CharField(
         max_length=50,
-        default="undefined"
+        default='undefined'
     )
 
     upload = models.FileField(
@@ -228,12 +228,12 @@ class File(Model):
 
     folder = models.ForeignKey(
         to=Folder,
-        related_name="files",
+        related_name='files',
         on_delete=models.CASCADE,
     )
 
     permission = models.CharField(
-        max_length=10, choices=constants.PERMISSIONS, default="r_o")
+        max_length=10, choices=constants.PERMISSIONS, default='r_o')
 
     starred = models.BooleanField(default=False)
 

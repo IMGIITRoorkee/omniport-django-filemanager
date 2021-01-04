@@ -24,29 +24,29 @@ class FileManagerViewSet(viewsets.ModelViewSet):
     permission_classes = [HasOmnipotenceRights]
 
     def create(self, request, *args, **kwargs):
-        is_public = request.data.get("is_public")
+        is_public = request.data.get('is_public')
         try:
             folder_name_template = request.data.get(
-                "folder_name_template", None)
+                'folder_name_template', None)
             filemanager_access_permissions = request.data.get(
-                "filemanager_access_permissions", None)
-            if folder_name_template == None or folder_name_template == "":
+                'filemanager_access_permissions', None)
+            if folder_name_template == None or folder_name_template == '':
                 folder_name_template = DEFAULT_ROOT_FOLDER_NAME_TEMPLATE
             filemanager = FileManager.objects.create(
-                filemanager_name=request.data.get("filemanager_name"),
+                filemanager_name=request.data.get('filemanager_name'),
                 folder_name_template=folder_name_template,
                 filemanager_access_permissions=str(
                     filemanager_access_permissions),
                 filemanager_extra_space_options=request.data.getlist(
-                    "filemanager_extra_space_options"
+                    'filemanager_extra_space_options'
                 ),
-                max_space=request.data.get("max_space"),
-                logo=request.data.get("logo"),
-                is_public=is_public == "True" or is_public == "true",
-                base_public_url=request.data.get("base_public_url", None)
+                max_space=request.data.get('max_space'),
+                logo=request.data.get('logo'),
+                is_public=is_public == 'True' or is_public == 'true',
+                base_public_url=request.data.get('base_public_url', None)
             )
         except Exception as e:
-            return Response(f"Unable to create filemanager as {e}", status=400)
+            return Response(f'Unable to create filemanager as {e}', status=400)
 
         try:
             people = Person.objects.exclude(user=None)
@@ -59,14 +59,14 @@ class FileManagerViewSet(viewsets.ModelViewSet):
                     filemanager_access_permission = eval(code)
                 except:
                     filemanager.delete()
-                    return Response("Unable to evaluate filemanager access permission", status=400)
+                    return Response('Unable to evaluate filemanager access permission', status=400)
 
                 if filemanager_access_permission:
                     try:
                         unique_name = eval(filemanager.folder_name_template)
                     except:
                         filemanager.delete()
-                        return Response("Unable to evaluate folder name template", status=400)
+                        return Response('Unable to evaluate folder name template', status=400)
                     new_root_folder = Folder(filemanager=filemanager,
                                              folder_name=unique_name,
                                              person=people[i],
@@ -79,4 +79,4 @@ class FileManagerViewSet(viewsets.ModelViewSet):
             folders = Folder.objects.bulk_create(batch, BATCH_SIZE[0])
             return Response(status=200)
         except Exception as e:
-            return Response(f"Filemanager created. Error in assigning root folders due to {e}", status=400)
+            return Response(f'Filemanager created. Error in assigning root folders due to {e}', status=400)

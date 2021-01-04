@@ -71,14 +71,14 @@ class FileView(viewsets.ModelViewSet):
         return queryset
 
     def create(self, request, *args, **kwargs):
-        parent_folder = Folder.objects.get(pk=request.data.get("folder"))
-        file_size = int(request.data.get("size"))
+        parent_folder = Folder.objects.get(pk=request.data.get('folder'))
+        file_size = int(request.data.get('size'))
         if not parent_folder.root == None:
             root_folder = parent_folder.root
         else:
             root_folder = parent_folder
         if root_folder.content_size + file_size > root_folder.max_space:
-            return HttpResponse("Space limit exceeded", status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse('Space limit exceeded', status=status.HTTP_400_BAD_REQUEST)
         while not parent_folder == None:
             updated_size = parent_folder.content_size + file_size
             parent_folder.content_size = updated_size
@@ -94,22 +94,22 @@ class FileView(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def bulk_create(self, request, *args, **kwargs):
         data = dict(request.data)
-        no_of_files = len(data.get("file_name"))
+        no_of_files = len(data.get('file_name'))
         batch = []
         try:
-            folder = Folder.objects.get(pk=int(data.get("folder")[0]))
+            folder = Folder.objects.get(pk=int(data.get('folder')[0]))
             parent_folder = folder
         except Folder.DoesNotExist:
-            return HttpResponse("parent folder doesnot found", status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse('parent folder doesnot found', status=status.HTTP_400_BAD_REQUEST)
         if not parent_folder.root == None:
             root_folder = parent_folder.root
         else:
             root_folder = parent_folder
         total_file_size = 0
         for i in range(0, no_of_files):
-            total_file_size = total_file_size + int(data.get("size")[i])
+            total_file_size = total_file_size + int(data.get('size')[i])
         if root_folder.content_size + total_file_size > root_folder.max_space:
-            return HttpResponse("Space limit exceeded", status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse('Space limit exceeded', status=status.HTTP_400_BAD_REQUEST)
 
         while not parent_folder == None:
             updated_size = parent_folder.content_size + total_file_size
@@ -118,13 +118,12 @@ class FileView(viewsets.ModelViewSet):
             parent_folder = parent_folder.parent
 
         for i in range(0, no_of_files):
-            print(data.get("upload")[i])
-            starred = data.get("starred")[i] == 'True'
-            new_file = File(upload=data.get("upload")[i],
-                            file_name=data.get("file_name")[i],
-                            extension=data.get("extension")[i],
+            starred = data.get('starred')[i] == 'True'
+            new_file = File(upload=data.get('upload')[i],
+                            file_name=data.get('file_name')[i],
+                            extension=data.get('extension')[i],
                             starred=starred,
-                            size=int(data.get("size")[i]),
+                            size=int(data.get('size')[i]),
                             folder=folder,
                             )
             batch.append(new_file)
@@ -136,11 +135,11 @@ class FileView(viewsets.ModelViewSet):
     def bulk_delete(self, request):
         data = dict(request.data)
         try:
-            arr = data["fileIdArr"]
+            arr = data['fileIdArr']
             if len(arr) == 0:
-                return HttpResponse("Arrays have no length.", status=status.HTTP_400_BAD_REQUEST)
+                return HttpResponse('Arrays have no length.', status=status.HTTP_400_BAD_REQUEST)
         except KeyError:
-            return HttpResponse("file ids not found.", status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse('file ids not found.', status=status.HTTP_400_BAD_REQUEST)
         files = File.objects.filter(pk__in=arr)
         self.check_object_permissions(self.request, files)
         parent_folder = files[0].folder
@@ -161,7 +160,7 @@ class FileView(viewsets.ModelViewSet):
             files.delete()
             return HttpResponse(status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
-            return HttpResponse(f"error in deleting files due to {e}", status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse(f'error in deleting files due to {e}', status=status.HTTP_400_BAD_REQUEST)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -193,7 +192,7 @@ class FileView(viewsets.ModelViewSet):
         try:
             file = File.objects.get(pk=pk)
         except File.DoesNotExist:
-            return HttpResponse("File Not available", status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse('File Not available', status=status.HTTP_400_BAD_REQUEST)
 
         try:
             shared_users = list(
@@ -210,8 +209,8 @@ class FileView(viewsets.ModelViewSet):
                     person = Person.objects.get(
                         id=user)
                     file.shared_users.add(person)
-                return HttpResponse("File shared with the users", status=status.HTTP_200_OK)
+                return HttpResponse('File shared with the users', status=status.HTTP_200_OK)
             except Exception as e:
-                return HttpResponse(f"Error occured while updating users due to {e}", status=status.HTTP_400_BAD_REQUEST)
+                return HttpResponse(f'Error occured while updating users due to {e}', status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            return HttpResponse(f"Unable to change shared_user due to {e}", status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse(f'Unable to change shared_user due to {e}', status=status.HTTP_400_BAD_REQUEST)
