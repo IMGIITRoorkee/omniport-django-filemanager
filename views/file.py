@@ -1,4 +1,6 @@
+import os
 from django.http import HttpResponse
+from django.conf import settings
 
 from rest_framework import viewsets
 from rest_framework.views import APIView
@@ -130,6 +132,46 @@ class FileView(viewsets.ModelViewSet):
         files = File.objects.bulk_create(batch, BATCH_SIZE[0])
         serializer = self.get_serializer(files, many=True)
         return Response(serializer.data)
+
+    def update(self,request,*args,**kwargs):
+        data = dict(request.data)
+        file = File.objects.get(id=kwargs['pk'])
+        if data.get('file_name') and (data.get('file_name') != file.file_name):
+            folder_name = str(file.folder.path)
+
+            if(file.folder.filemanager.is_public):
+                base_location = "public"
+            else:
+                base_location = "protected"
+
+            app_name = str(
+                file.folder.filemanager.filemanager_name)
+            path = os.path.join(
+                base_location,
+                app_name,
+                folder_name,
+            )
+            prev_filename = file.file_name
+            updated_filename = str(data.get('file_name')[0])
+            # Full path to the file
+            initial_destination = os.path.join(
+                settings.NETWORK_STORAGE_ROOT,
+                path,
+                prev_filename,
+            )
+            final_destination = os.path.join(
+                settings.NETWORK_STORAGE_ROOT,
+                path,
+                updated_filename,
+            )
+            upload_name = os.path.join(
+                path,
+                updated_filename
+            )
+            os.rename(initial_destination,final_destination)
+            file.upload.name = str(upload_name)
+            file.save()
+        return super().update(request,*args,**kwargs)
 
     @action(detail=False, methods=['post'])
     def bulk_delete(self, request):
