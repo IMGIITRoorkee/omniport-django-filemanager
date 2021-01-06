@@ -52,7 +52,11 @@ class FileSerializer(ModelSerializer):
             return obj.upload.name
         try:
             baseUrl = eval(obj.folder.filemanager.base_public_url)
-            remaining_path = obj.upload.name.split("/", 3)[-1]
+            if obj.folder.root:
+                root_folder_path = obj.folder.root.get_path()
+            else:
+                root_folder_path = f"{obj.folder.get_path()}/"
+            remaining_path = obj.upload.name.split(root_folder_path, 1)[-1]
             path = os.path.join(baseUrl, remaining_path)
         except:
             baseUrl = BASE_PROTECTED_URL
