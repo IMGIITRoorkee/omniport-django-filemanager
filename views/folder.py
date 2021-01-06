@@ -58,7 +58,8 @@ class FolderViewSet(viewsets.ModelViewSet):
         if update_root_folders_response['status'] == 200:
             folder = Folder.objects.get(
                 person=person, root=None, parent=None, filemanager=filemanager)
-            serializer = self.serializer_class(folder)
+            serializer = self.serializer_class(
+                folder, context={'request': request})
             return Response(serializer.data)
         else:
             return Response(update_root_folders_response['message'], update_root_folders_response['status'])
