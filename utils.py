@@ -41,3 +41,19 @@ def update_root_folders(person):
                     return dict({'status': 400, 'message': 'Unable to create root folder'})
 
     return dict({'status': 200, 'message': 'found filemanagers'})
+
+
+def add_content_size(parent_folder, size):
+    while not parent_folder == None:
+        updated_size = parent_folder.content_size + size
+        parent_folder.content_size = updated_size
+        parent_folder.save()
+        parent_folder = parent_folder.parent
+
+
+def reduce_content_size(parent_folder, size):
+    while not parent_folder == None:
+        updated_size = parent_folder.content_size - size
+        parent_folder.content_size = updated_size
+        parent_folder.save()
+        parent_folder = parent_folder.parent
