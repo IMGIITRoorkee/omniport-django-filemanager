@@ -150,8 +150,7 @@ class FileView(viewsets.ModelViewSet):
             # Full path to the file
             initial_destination = os.path.join(
                 settings.NETWORK_STORAGE_ROOT,
-                path,
-                prev_filename,
+                file.upload.name
             )
             final_destination = os.path.join(
                 settings.NETWORK_STORAGE_ROOT,
