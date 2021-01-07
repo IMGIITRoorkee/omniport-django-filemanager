@@ -12,7 +12,7 @@ from kernel.permissions.omnipotence import HasOmnipotenceRights
 from django_filemanager.serializers import subFolderSerializer, FolderSerializer, rootFolderSerializer
 from django_filemanager.constants import ACCEPT, REJECT, REQUEST_STATUS_MAP
 from django_filemanager.models import Folder, File, FileManager, BASE_PROTECTED_URL
-from django_filemanager.utils import update_root_folders
+from django_filemanager.utils import update_root_folders, reduce_content_size
 from django_filemanager.permissions import HasFolderOwnerPermission, HasFoldersOwnerPermission,   HasRootFolderPermission
 
 
@@ -200,11 +200,7 @@ class FolderViewSet(viewsets.ModelViewSet):
             total_folder_size = total_folder_size + folder.content_size
         parent = folders[0].parent
         try:
-            while not parent == None:
-                updated_size = parent.content_size - total_folder_size
-                parent.content_size = updated_size
-                parent.save()
-                parent = parent.parent
+            reduce_content_size(parent, total_folder_size)
             folders.delete()
             return HttpResponse(status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
@@ -212,13 +208,8 @@ class FolderViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if not instance.root == None:
-            root_folder = instance.root
-        else:
-            root_folder = instance
-        updated_size = root_folder.content_size - instance.content_size
-        root_folder.content_size = updated_size
-        root_folder.save()
+        parent = instance.parent
+        reduce_content_size(parent, instance.content_size)
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
