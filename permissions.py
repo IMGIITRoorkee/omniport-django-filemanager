@@ -82,7 +82,6 @@ class HasFolderOwnerPermission(permissions.IsAuthenticated):
             return True
 
         return (not obj.person.user is None) and obj.person.user == user
-            
 
 
 class HasFoldersOwnerPermission(permissions.IsAuthenticated):
@@ -113,7 +112,7 @@ class HasFileOwnerPermission(permissions.IsAuthenticated):
         if has_omnipotence_rights(user):
             return True
 
-        if (not obj.folder.person.user is None) and obj.folder.person == user:
+        if (not obj.folder.person.user is None) and obj.folder.person.user == user:
             return True
 
 
@@ -132,6 +131,7 @@ class HasFilesOwnerPermission(permissions.IsAuthenticated):
                 return False
         return True
 
+
 class HasRootFolderPermission(permissions.IsAuthenticated):
     def has_object_permission(self, request, view, filemanager):
         """
@@ -139,7 +139,8 @@ class HasRootFolderPermission(permissions.IsAuthenticated):
         """
         person = request.person
         try:
-            code = compile(filemanager.filemanager_access_permissions,'<bool>','eval')
+            code = compile(
+                filemanager.filemanager_access_permissions, '<bool>', 'eval')
             if(eval(code)):
                 return True
         except:
