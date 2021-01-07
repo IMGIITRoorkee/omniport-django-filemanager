@@ -51,22 +51,28 @@ class FileManagerViewSet(viewsets.ModelViewSet):
         try:
             people = Person.objects.exclude(user=None)
             batch = []
+            error_folder_name_template = 0
+            error_access_permission = 0
             for i in range(0, len(people)):
                 person = people[i]
+                if(error_folder_name_template + error_folder_name_template > 20):
+                    filemanager.delete()
+                    return Response(f'access_permissions failed for {error_access_permission} people and folder_name_template failed for {error_folder_name_template} person', status=400)
+
                 try:
                     code = compile(
                         filemanager.filemanager_access_permissions, '<bool>', 'eval')
                     filemanager_access_permission = eval(code)
                 except:
-                    filemanager.delete()
-                    return Response('Unable to evaluate filemanager access permission', status=400)
+                    error_access_permission += 1
+                    continue
 
                 if filemanager_access_permission:
                     try:
                         unique_name = eval(filemanager.folder_name_template)
                     except:
-                        filemanager.delete()
-                        return Response('Unable to evaluate folder name template', status=400)
+                        error_folder_name_template += 1
+                        continue
                     new_root_folder = Folder(filemanager=filemanager,
                                              folder_name=unique_name,
                                              person=people[i],
