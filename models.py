@@ -42,9 +42,7 @@ class FileManager(Model):
         max_length=50,
         null=True,
     )
-    folder_name_template = models.CharField(
-        max_length=200, null=True
-    )
+    folder_name_template = models.TextField(null=True, blank=True)
 
     filemanager_access_permissions = models.TextField(default='True')
 
