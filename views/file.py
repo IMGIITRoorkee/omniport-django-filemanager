@@ -16,6 +16,7 @@ from django_filemanager.serializers import FileSerializer
 from django_filemanager.models import Folder, File, FileManager, BASE_PROTECTED_URL
 from django_filemanager.permissions import HasFileOwnerPermission, HasFilesOwnerPermission
 from django_filemanager.constants import BATCH_SIZE
+from django_filemanager.utils import add_content_size, reduce_content_size
 
 
 class FileAccessView(APIView):
@@ -81,11 +82,8 @@ class FileView(viewsets.ModelViewSet):
             root_folder = parent_folder
         if root_folder.content_size + file_size > root_folder.max_space:
             return HttpResponse('Space limit exceeded', status=status.HTTP_400_BAD_REQUEST)
-        while not parent_folder == None:
-            updated_size = parent_folder.content_size + file_size
-            parent_folder.content_size = updated_size
-            parent_folder.save()
-            parent_folder = parent_folder.parent
+
+        add_content_size(parent_folder, file_size)
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -113,11 +111,7 @@ class FileView(viewsets.ModelViewSet):
         if root_folder.content_size + total_file_size > root_folder.max_space:
             return HttpResponse('Space limit exceeded', status=status.HTTP_400_BAD_REQUEST)
 
-        while not parent_folder == None:
-            updated_size = parent_folder.content_size + total_file_size
-            parent_folder.content_size = updated_size
-            parent_folder.save()
-            parent_folder = parent_folder.parent
+        add_content_size(parent_folder, total_file_size)
 
         for i in range(0, no_of_files):
             starred = data.get('starred')[i] == 'True'
@@ -185,20 +179,11 @@ class FileView(viewsets.ModelViewSet):
         files = File.objects.filter(pk__in=arr)
         self.check_object_permissions(self.request, files)
         parent_folder = files[0].folder
-        if not parent_folder.root == None:
-            root_folder = parent_folder.root
-        else:
-            root_folder = parent_folder
         total_file_size = 0
         for file in files:
             total_file_size = total_file_size + file.size
         try:
-            while not parent_folder == None:
-                updated_size = parent_folder.content_size - total_file_size
-                parent_folder.content_size = updated_size
-                parent_folder.save()
-                parent_folder = parent_folder.parent
-
+            reduce_content_size(parent_folder, total_file_size)
             files.delete()
             return HttpResponse(status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
@@ -207,13 +192,7 @@ class FileView(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         parent_folder = instance.folder
-        if not parent_folder.root == None:
-            root_folder = parent_folder.root
-        else:
-            root_folder = parent_folder
-        updated_size = root_folder.content_size - instance.size
-        root_folder.content_size = updated_size
-        root_folder.save()
+        reduce_content_size(parent_folder, instance.size)
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
 

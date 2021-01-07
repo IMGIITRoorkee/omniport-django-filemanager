@@ -17,6 +17,7 @@ from omniport.settings.base.directories import (
 )
 
 from django_filemanager.constants import BATCH_SIZE
+from django_filemanager.utils import add_content_size
 
 
 def get_file_name(file, fileName):
@@ -51,9 +52,10 @@ def add_all_contents(parent_folder_path, person, root_folder, parent_folder, fil
         file_names.extend(filenames)
         folder_names.extend(dirnames)
         break
-
+    total_file_size = 0
     for fileName in file_names:
         file = os.path.join(parent_folder_path, fileName)
+        total_file_size += os.stat(file).st_size
         new_file = File(
             file_name=fileName,
             extension=fileName.split('.')[-1],
@@ -72,6 +74,8 @@ def add_all_contents(parent_folder_path, person, root_folder, parent_folder, fil
         f = DjangoFile(open(file, 'r'))
         new_file.upload.save(newFileName, f)
 
+    add_content_size(parent_folder, total_file_size)
+
     for folderName in folder_names:
         new_folder = Folder(filemanager=filemanager,
                             folder_name=folderName,
@@ -79,11 +83,12 @@ def add_all_contents(parent_folder_path, person, root_folder, parent_folder, fil
                             max_space=filemanager.max_space,
                             starred=False,
                             root=root_folder,
-                            parent=root_folder)
+                            parent=parent_folder)
         new_folder.path = new_folder.get_path()
         folderBatch.append(new_folder)
 
     Folder.objects.bulk_create(folderBatch, BATCH_SIZE[0])
+
     for folder in folderBatch:
         add_all_contents(os.path.join(
             parent_folder_path, folder.folder_name), person, root_folder, folder, filemanager)
