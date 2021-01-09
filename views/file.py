@@ -17,7 +17,7 @@ from django_filemanager.serializers import FileSerializer
 from django_filemanager.models import Folder, File, FileManager, BASE_PROTECTED_URL
 from django_filemanager.permissions import HasFileOwnerPermission, HasFilesOwnerPermission
 from django_filemanager.constants import BATCH_SIZE
-from django_filemanager.utils import add_content_size, reduce_content_size
+from django_filemanager.utils import add_content_size, reduce_content_size, is_file_shared
 
 
 class FileAccessView(APIView):
@@ -44,8 +44,9 @@ class FileAccessView(APIView):
             return response
         if File.objects.filter(upload=url).exists():
             file_object = File.objects.get(upload=url)
-            if (file_object.belongs_to() == person) or (person in file_object.shared_users.all()):
-                response = HttpResponse(status=200)
+            isShared = is_file_shared(person, file_object)
+            if (file_object.belongs_to() == person) or isShared:
+                response = HttpResponse(status=404)
                 response['Content-Type'] = ''
                 response['X-Accel-Redirect'] = '/external/{}'.format(url)
                 return response

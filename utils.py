@@ -57,3 +57,13 @@ def reduce_content_size(parent_folder, size):
         parent_folder.content_size = updated_size
         parent_folder.save()
         parent_folder = parent_folder.parent
+
+def is_file_shared(person, file):
+    parent_folder = file.folder
+    if person in file.shared_users.all():
+        return True
+    while not parent_folder == None:
+        if(person in parent_folder.shared_users.all()):
+            return True
+        parent_folder = parent_folder.parent
+    return False
