@@ -1,4 +1,5 @@
 import os
+import re
 from django.http import HttpResponse
 from django.conf import settings
 
@@ -31,13 +32,18 @@ class FileAccessView(APIView):
     def get(self, request, format=None):
         path = request.path
         url = path.replace(BASE_PROTECTED_URL, '', 1)
+        pk_chars = re.search(r'^\d+', url)
+        pk = None
+        if pk_chars:
+            pk = int(pk_chars.group())
         person = request.person
-        if File.objects.filter(upload=url).exists():
-            file_object = File.objects.get(upload=url)
+        if File.objects.filter(pk=pk).exists():
+            file_object = File.objects.get(pk=pk)
             if (file_object.belongs_to() == person) or (person in file_object.shared_users.all()):
                 response = HttpResponse(status=200)
                 response['Content-Type'] = ''
-                response['X-Accel-Redirect'] = '/external/{}'.format(url)
+                response['X-Accel-Redirect'] = '/external/{}'.format(
+                    file_object.upload.name)
                 return response
         if FileManager.objects.filter(logo=url).exists():
             response = HttpResponse(status=200)
@@ -127,7 +133,7 @@ class FileView(viewsets.ModelViewSet):
         serializer = self.get_serializer(files, many=True)
         return Response(serializer.data)
 
-    def update(self,request,*args,**kwargs):
+    def update(self, request, *args, **kwargs):
         data = dict(request.data)
         file = File.objects.get(id=kwargs['pk'])
         if data.get('file_name') and (data.get('file_name') != file.file_name):
@@ -161,10 +167,10 @@ class FileView(viewsets.ModelViewSet):
                 path,
                 updated_filename
             )
-            os.rename(initial_destination,final_destination)
+            os.rename(initial_destination, final_destination)
             file.upload.name = str(upload_name)
             file.save()
-        return super().update(request,*args,**kwargs)
+        return super().update(request, *args, **kwargs)
 
     @action(detail=False, methods=['post'])
     def bulk_delete(self, request):
