@@ -37,6 +37,18 @@ class FileAccessView(APIView):
         if pk_chars:
             pk = int(pk_chars.group())
         person = request.person
+        if FileManager.objects.filter(logo=url).exists():
+            response = HttpResponse(status=200)
+            response['Content-Type'] = ''
+            response['X-Accel-Redirect'] = '/personal/{}'.format(url)
+            return response
+        if File.objects.filter(upload=url).exists():
+            file_object = File.objects.get(upload=url)
+            if (file_object.belongs_to() == person) or (person in file_object.shared_users.all()):
+                response = HttpResponse(status=200)
+                response['Content-Type'] = ''
+                response['X-Accel-Redirect'] = '/external/{}'.format(url)
+                return response
         if File.objects.filter(pk=pk).exists():
             file_object = File.objects.get(pk=pk)
             if (file_object.belongs_to() == person) or (person in file_object.shared_users.all()):
@@ -45,11 +57,6 @@ class FileAccessView(APIView):
                 response['X-Accel-Redirect'] = '/external/{}'.format(
                     file_object.upload.name)
                 return response
-        if FileManager.objects.filter(logo=url).exists():
-            response = HttpResponse(status=200)
-            response['Content-Type'] = ''
-            response['X-Accel-Redirect'] = '/personal/{}'.format(url)
-            return response
 
         response = HttpResponse(status=404)
         return response
