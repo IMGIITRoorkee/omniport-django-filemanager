@@ -52,7 +52,8 @@ class FileAccessView(APIView):
                 return response
         if File.objects.filter(pk=pk).exists():
             file_object = File.objects.get(pk=pk)
-            if (file_object.belongs_to() == person) or (person in file_object.shared_users.all()):
+            isShared = is_file_shared(person, file_object)
+            if (file_object.belongs_to() == person) or isShared:
                 response = HttpResponse(status=200)
                 response['Content-Type'] = ''
                 response['X-Accel-Redirect'] = '/external/{}'.format(
