@@ -1,5 +1,6 @@
 from rest_framework import permissions
 from django_filemanager.models import Folder, File, FileManager
+from django_filemanager.utils import is_folder_shared
 from django.core.exceptions import ValidationError
 from kernel.models import Person
 from kernel.utils.rights import has_omnipotence_rights
@@ -19,7 +20,7 @@ class HasItemPermissions(permissions.BasePermission):
         if is_folder and item == 'folder':
             try:
                 folder = Folder.objects.get(sharing_id=uu_id)
-                if folder.shared_users.get(id=person.id):
+                if is_folder_shared(person, folder):
                     if folder.id == item_id:
                         return True
                     else:

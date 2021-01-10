@@ -177,7 +177,8 @@ class FolderViewSet(viewsets.ModelViewSet):
                     person = Person.objects.get(
                         id=user)
                     folder.shared_users.add(person)
-                return HttpResponse('Folder shared with the users', status=status.HTTP_200_OK)
+                updated_folder = FolderSerializer(folder) 
+                return Response(updated_folder.data)
             except Exception as e:
                 return HttpResponse(f'Error occured while updating users due to {e}', status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
