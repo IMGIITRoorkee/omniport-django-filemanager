@@ -244,7 +244,8 @@ class FileView(viewsets.ModelViewSet):
                     person = Person.objects.get(
                         id=user)
                     file.shared_users.add(person)
-                return HttpResponse('File shared with the users', status=status.HTTP_200_OK)
+                updated_file = FileSerializer(file)
+                return Response(updated_file.data)
             except Exception as e:
                 return HttpResponse(f'Error occured while updating users due to {e}', status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
