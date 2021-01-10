@@ -21,10 +21,30 @@ class subFolderSerializer(ModelSerializer):
     person = PersonSerializer(read_only=True)
     shared_users = PersonSerializer(many=True, read_only=True)
     is_filemanager_public = serializers.ReadOnlyField()
+    public_folder_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Folder
         fields = '__all__'
+
+    def get_public_folder_url(self, obj):
+        person = None
+        request = self.context.get("request")
+        if request and hasattr(request, "person"):
+            person = request.person
+        if(not obj.filemanager.is_public):
+            return None
+        try:
+            baseUrl = eval(obj.filemanager.base_public_url)
+            if obj.root:
+                root_folder_path = f"{obj.root.get_path()}/"
+            else:
+                root_folder_path = f"{obj.get_path()}/"
+            remaining_path = obj.get_path().split(root_folder_path, 1)[-1]
+            path = os.path.join(baseUrl, remaining_path)
+        except:
+            path = None
+        return path
 
 
 class FileSerializer(ModelSerializer):
