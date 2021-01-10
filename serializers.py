@@ -53,7 +53,7 @@ class FileSerializer(ModelSerializer):
         try:
             baseUrl = eval(obj.folder.filemanager.base_public_url)
             if obj.folder.root:
-                root_folder_path = obj.folder.root.get_path()
+                root_folder_path = f"{obj.folder.root.get_path()}/"
             else:
                 root_folder_path = f"{obj.folder.get_path()}/"
             remaining_path = obj.upload.name.split(root_folder_path, 1)[-1]
