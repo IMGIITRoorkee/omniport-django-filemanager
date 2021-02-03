@@ -151,5 +151,4 @@ class HasRootFolderPermission(permissions.IsAuthenticated):
 
 class HasParentPermission(permissions.IsAuthenticated):
     def has_object_permission(self, request, view, obj):
-        print("dfsa")
         return request.person == obj.person or is_folder_shared(request.person,obj)
