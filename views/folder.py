@@ -12,8 +12,8 @@ from kernel.permissions.omnipotence import HasOmnipotenceRights
 from django_filemanager.serializers import subFolderSerializer, FolderSerializer, rootFolderSerializer
 from django_filemanager.constants import ACCEPT, REJECT, REQUEST_STATUS_MAP
 from django_filemanager.models import Folder, File, FileManager, BASE_PROTECTED_URL
-from django_filemanager.utils import update_root_folders, reduce_content_size
-from django_filemanager.permissions import HasFolderOwnerPermission, HasFoldersOwnerPermission,   HasRootFolderPermission
+from django_filemanager.utils import update_root_folders, reduce_content_size, is_folder_shared
+from django_filemanager.permissions import HasFolderOwnerPermission, HasFoldersOwnerPermission,   HasRootFolderPermission, HasParentPermission
 
 
 class FolderViewSet(viewsets.ModelViewSet):
@@ -31,6 +31,7 @@ class FolderViewSet(viewsets.ModelViewSet):
         'destroy': [HasFolderOwnerPermission],
         'bulk_delete': [HasFoldersOwnerPermission],
         'default': [IsAuthenticated],
+        'get_parent_folders': [HasParentPermission]
     }
 
     def get_permissions(self):
@@ -177,7 +178,7 @@ class FolderViewSet(viewsets.ModelViewSet):
                     person = Person.objects.get(
                         id=user)
                     folder.shared_users.add(person)
-                updated_folder = FolderSerializer(folder) 
+                updated_folder = FolderSerializer(folder)
                 return Response(updated_folder.data)
             except Exception as e:
                 return HttpResponse(f'Error occured while updating users due to {e}', status=status.HTTP_400_BAD_REQUEST)
@@ -235,8 +236,17 @@ class FolderViewSet(viewsets.ModelViewSet):
             return HttpResponse('Folder Not available', status=status.HTTP_400_BAD_REQUEST)
         self.check_object_permissions(self.request, folder)
         parents = []
-        while folder != None:
-            parents.insert(0, folder)
-            folder = folder.parent
+        if is_folder_shared(request.person, folder):
+            while folder != None:
+                parents.insert(0, folder)
+                if request.person in folder.shared_users.all():
+                    break
+                folder = folder.parent
+            parents.insert(0, folder.root)
+        else:
+            while folder != None:
+                parents.insert(0, folder)
+                folder = folder.parent
+
         serializer = subFolderSerializer(parents, many=True)
         return Response(serializer.data)

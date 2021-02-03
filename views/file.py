@@ -15,7 +15,7 @@ from kernel.models import Person
 
 from django_filemanager.serializers import FileSerializer
 from django_filemanager.models import Folder, File, FileManager, BASE_PROTECTED_URL
-from django_filemanager.permissions import HasFileOwnerPermission, HasFilesOwnerPermission
+from django_filemanager.permissions import HasFileOwnerPermission, HasFilesOwnerPermission, HasFolderOwnerPermission
 from django_filemanager.constants import BATCH_SIZE
 from django_filemanager.utils import add_content_size, reduce_content_size, is_file_shared
 
@@ -74,6 +74,7 @@ class FileView(viewsets.ModelViewSet):
     permission_classes_by_action = {
         'destroy': [HasFileOwnerPermission],
         'bulk_delete': [HasFilesOwnerPermission],
+        'bulk_create': [HasFolderOwnerPermission],
         'default': [IsAuthenticated],
     }
 
@@ -116,6 +117,7 @@ class FileView(viewsets.ModelViewSet):
             parent_folder = folder
         except Folder.DoesNotExist:
             return HttpResponse('parent folder doesnot found', status=status.HTTP_400_BAD_REQUEST)
+        self.check_object_permissions(self.request, parent_folder)
         if not parent_folder.root == None:
             root_folder = parent_folder.root
         else:
