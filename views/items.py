@@ -39,13 +39,13 @@ class AllSharedItems(APIView):
         update_root_folders_response = update_root_folders(person)
         if update_root_folders_response['status'] == 200:
             files_shared = File.objects.filter(
-                folder__filemanager=filemanager).filter(shared_users=person
+                Q(folder__filemanager=filemanager)&~Q(folder__person=person)).filter(Q(shared_users=person)|Q(share_with_all=True)
                                                         )
             files = FileSerializer(
                 files_shared, many=True
             )
             folders_shared = Folder.objects.filter(
-                filemanager=filemanager).filter(shared_users=person
+                Q(filemanager=filemanager)&~Q(person=person)).filter(Q(shared_users=person)|Q(share_with_all=True)
                                                 )
             folders = FolderSerializer(
                 folders_shared, many=True

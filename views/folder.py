@@ -158,12 +158,14 @@ class FolderViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['PATCH'], )
     def update_shared_users(self, request, *args, **kwargs):
         pk = kwargs['pk']
+        share_with_all = request.data.get('share_with_all')=='true'
         try:
             folder = Folder.objects.get(pk=pk)
         except Folder.DoesNotExist:
             return HttpResponse('Folder Not available', status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            folder.share_with_all = share_with_all
             shared_users = list(
                 filter(None, request.data.getlist('shared_users')))
             shared_users_initially = [x.id for x in folder.shared_users.all()]
@@ -179,6 +181,7 @@ class FolderViewSet(viewsets.ModelViewSet):
                         id=user)
                     folder.shared_users.add(person)
                 updated_folder = FolderSerializer(folder)
+                folder.save() 
                 return Response(updated_folder.data)
             except Exception as e:
                 return HttpResponse(f'Error occured while updating users due to {e}', status=status.HTTP_400_BAD_REQUEST)

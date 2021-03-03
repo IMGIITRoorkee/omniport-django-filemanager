@@ -140,6 +140,8 @@ class Folder(Model):
 
     starred = models.BooleanField(default=False)
 
+    share_with_all = models.BooleanField(default=False)
+
     data_request_status = models.CharField(
         max_length=10, choices=constants.REQUEST_STATUS, default='0')
 
@@ -224,6 +226,8 @@ class File(Model):
         related_name='file_shared_users',
         blank=True
     )
+
+    share_with_all = models.BooleanField(default=False)
 
     folder = models.ForeignKey(
         to=Folder,
