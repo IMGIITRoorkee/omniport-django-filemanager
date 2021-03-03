@@ -62,6 +62,8 @@ def is_file_shared(person, file):
     parent_folder = file.folder
     if person in file.shared_users.all():
         return True
+    if file.share_with_all:
+        return True
     while not parent_folder == None:
         if(person in parent_folder.shared_users.all()):
             return True
@@ -71,6 +73,8 @@ def is_file_shared(person, file):
 def is_folder_shared(person, folder):
     parent_folder = folder
     if person in folder.shared_users.all():
+        return True
+    if folder.share_with_all:
         return True
     while not parent_folder == None:
         if(person in parent_folder.shared_users.all()):

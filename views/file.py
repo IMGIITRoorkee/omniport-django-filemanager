@@ -240,6 +240,7 @@ class FileView(viewsets.ModelViewSet):
     @ action(detail=True, methods=['PATCH'], )
     def update_shared_users(self, request, *args, **kwargs):
         pk = kwargs['pk']
+        share_with_all = request.data.get('share_with_all')=='true'
         try:
             file = File.objects.get(pk=pk)
         except File.DoesNotExist:
@@ -252,6 +253,7 @@ class FileView(viewsets.ModelViewSet):
             deleted_users = list(set(shared_users_initially)-set(shared_users))
             new_users = list(set(shared_users) - set(shared_users_initially))
             try:
+                file.share_with_all = share_with_all
                 for user in deleted_users:
                     person = Person.objects.get(
                         id=user)
@@ -260,6 +262,7 @@ class FileView(viewsets.ModelViewSet):
                     person = Person.objects.get(
                         id=user)
                     file.shared_users.add(person)
+                file.save()
                 updated_file = FileSerializer(file)
                 return Response(updated_file.data)
             except Exception as e:
