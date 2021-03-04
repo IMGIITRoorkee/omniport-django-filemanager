@@ -90,8 +90,15 @@ class FileView(viewsets.ModelViewSet):
         return queryset
 
     def create(self, request, *args, **kwargs):
-        parent_folder = Folder.objects.get(pk=request.data.get('folder'))
-        file_size = int(request.data.get('size'))
+        data = request.data
+        try:
+            folder = Folder.objects.get(pk=int(data.get('folder')))
+            parent_folder = folder
+        except Folder.DoesNotExist:
+            return HttpResponse('parent folder doesnot found', status=status.HTTP_400_BAD_REQUEST)
+        self.check_object_permissions(self.request, parent_folder)
+
+        file_size = int(data.get('size'))
         if not parent_folder.root == None:
             root_folder = parent_folder.root
         else:
@@ -99,11 +106,18 @@ class FileView(viewsets.ModelViewSet):
         if root_folder.content_size + file_size > root_folder.max_space:
             return HttpResponse('Space limit exceeded', status=status.HTTP_400_BAD_REQUEST)
 
-        add_content_size(parent_folder, file_size)
 
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
+        add_content_size(parent_folder, file_size)
+        starred = data.get('starred') == 'True'
+
+        new_file = File.objects.create(upload=data.get('upload'),
+                                       file_name=data.get('file_name'),
+                                       extension=data.get('extension'),
+                                       starred=starred,
+                                       size=int(data.get('size')),
+                                       folder=parent_folder,
+                                       )
+        serializer = self.get_serializer(new_file)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
