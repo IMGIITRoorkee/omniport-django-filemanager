@@ -242,7 +242,7 @@ class FolderViewSet(viewsets.ModelViewSet):
         if is_folder_shared(request.person, folder):
             while folder != None:
                 parents.insert(0, folder)
-                if request.person in folder.shared_users.all():
+                if request.person in folder.shared_users.all() or folder.share_with_all:
                     break
                 folder = folder.parent
             parents.insert(0, folder.root)
