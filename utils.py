@@ -33,10 +33,6 @@ def update_root_folders(person):
                                     parent=None,
                                     )
                     folder.save()
-
-                    folder = Folder.objects.get(
-                        person=person, root=None, parent=None)
-
                 except:
                     return dict({'status': 400, 'message': 'Unable to create root folder'})
 
@@ -58,6 +54,7 @@ def reduce_content_size(parent_folder, size):
         parent_folder.save()
         parent_folder = parent_folder.parent
 
+
 def is_file_shared(person, file):
     parent_folder = file.folder
     if person in file.shared_users.all():
@@ -67,6 +64,7 @@ def is_file_shared(person, file):
             return True
         parent_folder = parent_folder.parent
     return False
+
 
 def is_folder_shared(person, folder):
     parent_folder = folder
