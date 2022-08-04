@@ -1,4 +1,8 @@
+import shutil
+import os
+
 from django.http import HttpResponse
+from django.conf import settings
 
 from rest_framework import viewsets
 from rest_framework.response import Response
@@ -158,7 +162,7 @@ class FolderViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['PATCH'], )
     def update_shared_users(self, request, *args, **kwargs):
         pk = kwargs['pk']
-        share_with_all = request.data.get('share_with_all')=='true'
+        share_with_all = request.data.get('share_with_all') == 'true'
         try:
             folder = Folder.objects.get(pk=pk)
         except Folder.DoesNotExist:
@@ -181,7 +185,7 @@ class FolderViewSet(viewsets.ModelViewSet):
                         id=user)
                     folder.shared_users.add(person)
                 updated_folder = FolderSerializer(folder)
-                folder.save() 
+                folder.save()
                 return Response(updated_folder.data)
             except Exception as e:
                 return HttpResponse(f'Error occured while updating users due to {e}', status=status.HTTP_400_BAD_REQUEST)
