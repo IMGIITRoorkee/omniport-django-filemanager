@@ -1,7 +1,10 @@
+from genericpath import isfile
 import os
+import shutil
 import re
 from django.http import HttpResponse
 from django.conf import settings
+import zipfile
 
 from rest_framework import viewsets
 from rest_framework.views import APIView
@@ -18,6 +21,8 @@ from django_filemanager.models import Folder, File, FileManager, BASE_PROTECTED_
 from django_filemanager.permissions import HasFileOwnerPermission, HasFilesOwnerPermission, HasFolderOwnerPermission
 from django_filemanager.constants import BATCH_SIZE
 from django_filemanager.utils import add_content_size, reduce_content_size, is_file_shared
+from django_filemanager.views.utils.file import create_file, file_exists
+from django_filemanager.views.utils.copy_folder import sanitize_folder_name, shift_single_folder
 
 
 class FileAccessView(APIView):
@@ -106,8 +111,6 @@ class FileView(viewsets.ModelViewSet):
         if root_folder.content_size + file_size > root_folder.max_space:
             return HttpResponse('Space limit exceeded', status=status.HTTP_400_BAD_REQUEST)
 
-
-        add_content_size(parent_folder, file_size)
         starred = data.get('starred') == 'True'
 
         new_file = File.objects.create(upload=data.get('upload'),
@@ -119,6 +122,7 @@ class FileView(viewsets.ModelViewSet):
                                        )
         serializer = self.get_serializer(new_file)
         headers = self.get_success_headers(serializer.data)
+        add_content_size(parent_folder, file_size)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     @action(detail=False, methods=['post'])
@@ -240,7 +244,7 @@ class FileView(viewsets.ModelViewSet):
     @ action(detail=True, methods=['PATCH'], )
     def update_shared_users(self, request, *args, **kwargs):
         pk = kwargs['pk']
-        share_with_all = request.data.get('share_with_all')=='true'
+        share_with_all = request.data.get('share_with_all') == 'true'
         try:
             file = File.objects.get(pk=pk)
         except File.DoesNotExist:
@@ -269,3 +273,66 @@ class FileView(viewsets.ModelViewSet):
                 return HttpResponse(f'Error occured while updating users due to {e}', status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return HttpResponse(f'Unable to change shared_user due to {e}', status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=['post'], detail=False, url_name='zip', url_path='zip')
+    def zip(self, request):
+        data = request.data
+        try:
+            folder = Folder.objects.get(pk=data.get('folder'))
+            parent_folder = folder
+        except Folder.DoesNotExist:
+            return HttpResponse('parent folder doesnot found', status=status.HTTP_400_BAD_REQUEST)
+        self.check_object_permissions(self.request, parent_folder)
+
+        if not parent_folder.root == None:
+            root_folder = parent_folder.root
+        else:
+            root_folder = parent_folder
+
+        file = data.get('upload')
+        file_path = file.temporary_file_path()
+        directory_path = os.path.dirname(file_path)
+
+        contents = []
+        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+            size = sum([zinfo.file_size for zinfo in zip_ref.filelist])
+            if root_folder.content_size + size > root_folder.max_space:
+                return HttpResponse('Space limit exceeded', status=status.HTTP_400_BAD_REQUEST)
+
+            for p in zip_ref.namelist():
+                contents.append(p.split('/')[0])
+            zip_ref.extractall(directory_path)
+        contents = list(set(contents))
+        if parent_folder.filemanager.is_public:
+            base_location = 'public'
+        else:
+            base_location = 'protected'
+
+        filemanager_path = os.path.join(
+            settings.NETWORK_STORAGE_ROOT, base_location, parent_folder.filemanager.filemanager_url_path)
+        for content in contents:
+            path = os.path.join(directory_path, content)
+            final_destination = os.path.join(parent_folder.path, content)
+            if os.path.isdir(path) and not os.path.exists(final_destination):
+                content = sanitize_folder_name(os.path.join(
+                    filemanager_path, parent_folder.get_path()), content)
+                shift_single_folder(
+                    path, parent_folder.path, filemanager_path, parent_folder.filemanager, content)
+                shutil.move(path, os.path.join(
+                    filemanager_path, parent_folder.get_path(), content))
+            elif os.path.isfile(path) and not os.path.exists(final_destination):
+                parent_folders = parent_folder.get_path().split('/')
+                parent_path = filemanager_path
+                for parent in parent_folders:
+                    parent_path = os.path.join(parent_path, parent)
+                    if not os.path.isdir(parent_path):
+                        os.mkdir(parent_path)
+                content = file_exists(parent_path, content)
+                extension = os.path.splitext(path)[1]
+                filesize = os.path.getsize(path)
+                file_obj = create_file(
+                    parent_folder, content, extension, filesize)
+                shutil.copy(path, os.path.join(
+                    parent_path, content))
+        add_content_size(parent_folder, size)
+        return HttpResponse('Created', status=status.HTTP_200_OK)

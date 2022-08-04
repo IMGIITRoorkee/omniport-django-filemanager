@@ -290,7 +290,9 @@ def remove_folder(sender, instance, **kwargs):
     destination = instance.path
     try:
         path = os.path.join(
-            settings.PERSONAL_ROOT,
+            settings.NETWORK_STORAGE_ROOT,
+            'public' if instance.filemanager.is_public else 'protected',
+            instance.filemanager.filemanager_url_path,
             destination,
         )
         shutil.rmtree(path)
