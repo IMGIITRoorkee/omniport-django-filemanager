@@ -53,6 +53,7 @@ class FileAccessView(APIView):
             if (file_object.belongs_to() == person) or isShared:
                 response = HttpResponse(status=200)
                 response['Content-Type'] = ''
+                response['Content-Disposition'] = "attachment; filename=%s" % file_object.file_name
                 response['X-Accel-Redirect'] = '/external/{}'.format(url)
                 return response
         if File.objects.filter(pk=pk).exists():
@@ -61,6 +62,7 @@ class FileAccessView(APIView):
             if (file_object.belongs_to() == person) or isShared:
                 response = HttpResponse(status=200)
                 response['Content-Type'] = ''
+                response['Content-Disposition'] = "attachment; filename=%s" % file_object.file_name
                 response['X-Accel-Redirect'] = '/external/{}'.format(
                     file_object.upload.name)
                 return response
