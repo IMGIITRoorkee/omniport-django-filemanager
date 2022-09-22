@@ -58,9 +58,9 @@ def add_all_contents(parent_folder_path, person, root_folder, parent_folder, fil
         src_file = os.path.join(
             settings.NETWORK_STORAGE_ROOT, newFilePath)
         os.makedirs(os.path.dirname(src_file), exist_ok=True)
-
+       
         new_file.file_name = newFileName
-        f = DjangoFile(open(file, 'r'))
+        f = DjangoFile(open(file, 'br'))
         new_file.upload.save(newFileName, f)
 
     add_content_size(parent_folder, total_file_size)
