@@ -311,7 +311,7 @@ class FileView(viewsets.ModelViewSet):
             base_location = 'protected'
 
         filemanager_path = os.path.join(
-            settings.NETWORK_STORAGE_ROOT, base_location, parent_folder.filemanager.filemanager_url_path)
+            settings.NETWORK_STORAGE_ROOT, base_location, parent_folder.filemanager.filemanager_name)
         for content in contents:
             path = os.path.join(directory_path, content)
             final_destination = os.path.join(parent_folder.path, content)
