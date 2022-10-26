@@ -35,30 +35,40 @@ def sanitize_folder_name(parent_folder_path, folder_name, freq=0):
     else:
         return folder_name
 
+def folder_exists(parent_folder, filemanager_path):
+    """This function recursively checks whether parent folders exists or not and creates them if needed
 
-def shift_single_folder(folder_path, parent_folder_path, filemanager_path, filemanager, foldername):
+    Arg: 
+        parent_folder (instance): parent folder of file
+        filemanager_path (str): path of filemanager
+    """
+    if parent_folder.parent is None and not os.path.isdir(os.path.join(filemanager_path, parent_folder.path)):
+        os.mkdir(os.path.join(filemanager_path, parent_folder.path))
+
+    elif parent_folder.parent is None and os.path.isdir(os.path.join(filemanager_path, parent_folder.path)):
+        return
+
+    else:
+        if not os.path.isdir(os.path.join(filemanager_path, parent_folder.parent.path)):
+            folder_exists(parent_folder.parent, filemanager_path)
+        
+        if not os.path.isdir(os.path.join(filemanager_path, parent_folder.path)):
+            os.mkdir(os.path.join(filemanager_path, parent_folder.path))
+
+
+def shift_single_folder(folder_path, parent_folder, filemanager_path, filemanager, foldername):
     """This function creates a new folder model and loops through its content
 
     Args:
         folder_path (str): temporary folder path
-        parent_folder_path (str): path of parent folder
+        parent_folder (instance): instance of parent folder
         filemanager_path (str): path of filemanager
         filemanager (instance): instance of filemanager
         foldername (str): folder name
     """
     os.listdir(folder_path)
 
-    parent_folder = None
-
     folder_size = os.path.getsize(folder_path)
-
-    for path in parent_folder_path.split('/'):
-        if parent_folder == None:
-            parent_folder = Folder.objects.get(
-                folder_name=path, parent=parent_folder, filemanager=filemanager)
-        else:
-            parent_folder = Folder.objects.get(
-                folder_name=path, parent=parent_folder)
 
     new_folder = Folder.objects.create(folder_name=foldername, parent=parent_folder,
                                        filemanager=parent_folder.filemanager, root=parent_folder.root, person=parent_folder.person,
@@ -74,4 +84,4 @@ def shift_single_folder(folder_path, parent_folder_path, filemanager_path, filem
                 new_folder, file_or_dir, extension, file_size)
         elif os.path.isdir(os.path.join(folder_path, file_or_dir)) and not os.path.exists(os.path.join(new_folder.path, file_or_dir)):
             shift_single_folder(os.path.join(
-                folder_path, file_or_dir), new_folder.path, filemanager_path, filemanager, file_or_dir)
+                folder_path, file_or_dir), new_folder, filemanager_path, filemanager, file_or_dir)
