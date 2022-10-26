@@ -22,7 +22,7 @@ from django_filemanager.permissions import HasFileOwnerPermission, HasFilesOwner
 from django_filemanager.constants import BATCH_SIZE
 from django_filemanager.utils import add_content_size, reduce_content_size, is_file_shared
 from django_filemanager.views.utils.file import create_file, file_exists
-from django_filemanager.views.utils.copy_folder import sanitize_folder_name, shift_single_folder
+from django_filemanager.views.utils.copy_folder import sanitize_folder_name, shift_single_folder, folder_exists
 
 
 class FileAccessView(APIView):
@@ -319,16 +319,15 @@ class FileView(viewsets.ModelViewSet):
                 content = sanitize_folder_name(os.path.join(
                     filemanager_path, parent_folder.get_path()), content)
                 shift_single_folder(
-                    path, parent_folder.path, filemanager_path, parent_folder.filemanager, content)
+                    path, parent_folder, filemanager_path, parent_folder.filemanager, content)
                 shutil.move(path, os.path.join(
                     filemanager_path, parent_folder.get_path(), content))
             elif os.path.isfile(path) and not os.path.exists(final_destination):
-                parent_folders = parent_folder.get_path().split('/')
                 parent_path = filemanager_path
-                for parent in parent_folders:
-                    parent_path = os.path.join(parent_path, parent)
-                    if not os.path.isdir(parent_path):
-                        os.mkdir(parent_path)
+                if not os.path.isdir(parent_path):
+                    os.mkdir(parent_path)
+                folder_exists(parent_folder, parent_path)
+                parent_path = os.path.join(parent_path, parent_folder.get_path())
                 content = file_exists(parent_path, content)
                 extension = os.path.splitext(path)[1]
                 filesize = os.path.getsize(path)
