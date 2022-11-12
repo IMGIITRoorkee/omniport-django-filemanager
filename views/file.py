@@ -106,10 +106,7 @@ class FileView(viewsets.ModelViewSet):
         self.check_object_permissions(self.request, parent_folder)
 
         file_size = int(data.get('size'))
-        if not parent_folder.root == None:
-            root_folder = parent_folder.root
-        else:
-            root_folder = parent_folder
+        root_folder = Folder.objects.get(filemanager = parent_folder.filemanager, parent = None, person = Person.objects.get(pk=parent_folder.person_id))
         if root_folder.content_size + file_size > root_folder.max_space:
             return HttpResponse('Space limit exceeded', status=status.HTTP_400_BAD_REQUEST)
 
@@ -286,10 +283,7 @@ class FileView(viewsets.ModelViewSet):
             return HttpResponse('parent folder doesnot found', status=status.HTTP_400_BAD_REQUEST)
         self.check_object_permissions(self.request, parent_folder)
 
-        if not parent_folder.root == None:
-            root_folder = parent_folder.root
-        else:
-            root_folder = parent_folder
+        root_folder = Folder.objects.get(filemanager = parent_folder.filemanager, parent = None, person = Person.objects.get(pk=parent_folder.person_id))
 
         file = data.get('upload')
         file_path = file.temporary_file_path()
