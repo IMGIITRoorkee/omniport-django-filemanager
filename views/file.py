@@ -106,7 +106,14 @@ class FileView(viewsets.ModelViewSet):
         self.check_object_permissions(self.request, parent_folder)
 
         file_size = int(data.get('size'))
-        root_folder = Folder.objects.get(filemanager = parent_folder.filemanager, parent = None, person = Person.objects.get(pk=parent_folder.person_id))
+        
+        try:
+            file_manager = parent_folder.filemanager
+            user = Person.objects.get(pk=parent_folder.person_id)
+            root_folder = Folder.objects.get(filemanager = file_manager, parent = None, person = user)
+        except Exception as e:
+            return HttpResponse(f'Unable to fetch root folder due to {e}', status=status.HTTP_400_BAD_REQUEST)
+    
         if root_folder.content_size + file_size > root_folder.max_space:
             return HttpResponse('Space limit exceeded', status=status.HTTP_400_BAD_REQUEST)
 
@@ -283,7 +290,12 @@ class FileView(viewsets.ModelViewSet):
             return HttpResponse('parent folder doesnot found', status=status.HTTP_400_BAD_REQUEST)
         self.check_object_permissions(self.request, parent_folder)
 
-        root_folder = Folder.objects.get(filemanager = parent_folder.filemanager, parent = None, person = Person.objects.get(pk=parent_folder.person_id))
+        try:
+            file_manager = parent_folder.filemanager
+            user = Person.objects.get(pk=parent_folder.person_id)
+            root_folder = Folder.objects.get(filemanager = file_manager, parent = None, person = user)
+        except Exception as e:
+            return HttpResponse(f'Unable to fetch root folder due to {e}', status=status.HTTP_400_BAD_REQUEST)
 
         file = data.get('upload')
         file_path = file.temporary_file_path()
