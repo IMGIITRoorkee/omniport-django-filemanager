@@ -109,8 +109,8 @@ class FileView(viewsets.ModelViewSet):
         
         try:
             file_manager = parent_folder.filemanager
-            user = Person.objects.get(pk=parent_folder.person_id)
-            root_folder = Folder.objects.get(filemanager = file_manager, parent = None, person = user)
+            person = Person.objects.get(pk=parent_folder.person_id)
+            root_folder = Folder.objects.get(filemanager = file_manager, parent = None, person = person)
         except Exception as e:
             return HttpResponse(f'Unable to fetch root folder due to {e}', status=status.HTTP_400_BAD_REQUEST)
     
@@ -292,8 +292,8 @@ class FileView(viewsets.ModelViewSet):
 
         try:
             file_manager = parent_folder.filemanager
-            user = Person.objects.get(pk=parent_folder.person_id)
-            root_folder = Folder.objects.get(filemanager = file_manager, parent = None, person = user)
+            person = Person.objects.get(pk=parent_folder.person_id)
+            root_folder = Folder.objects.get(filemanager = file_manager, parent = None, person = person)
         except Exception as e:
             return HttpResponse(f'Unable to fetch root folder due to {e}', status=status.HTTP_400_BAD_REQUEST)
 
