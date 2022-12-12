@@ -280,6 +280,52 @@ class FileView(viewsets.ModelViewSet):
         except Exception as e:
             return HttpResponse(f'Unable to change shared_user due to {e}', status=status.HTTP_400_BAD_REQUEST)
 
+    @action(methods=['post'], detail=False, url_name='copy_file', url_path='copy_file')
+    def copy(self, request):
+        data = request.data
+        file_id = int(data.get('file_id', None))
+        destination = int(data.get('destination', None))
+        try:
+            file = File.objects.get(pk=file_id)
+        except File.DoesNotExist:
+            return HttpResponse('file doesnot found', status=status.HTTP_400_BAD_REQUEST)
+        try:
+            folder = Folder.objects.get(pk=destination)
+        except Folder.DoesNotExist:
+            return HttpResponse('destination folder not found', status=status.HTTP_400_BAD_REQUEST)
+        self.check_object_permissions(self.request, folder)
+        try:
+            file_manager = folder.filemanager
+            person = Person.objects.get(pk=folder.person_id)
+            root_folder = Folder.objects.get(filemanager = file_manager, parent = None, person = person)
+        except Exception as e:
+            return HttpResponse(f'Unable to fetch root folder due to {e}', status=status.HTTP_400_BAD_REQUEST)
+
+        if root_folder.content_size + file.size > root_folder.max_space:
+            return HttpResponse('Space limit exceeded', status=status.HTTP_400_BAD_REQUEST)
+        
+        if folder.filemanager.is_public:
+            final_base_location = 'public'
+        else:
+            final_base_location = 'protected'
+
+        final_filemanager_path = os.path.join(
+            settings.NETWORK_STORAGE_ROOT, final_base_location, folder.filemanager.filemanager_name)
+        folder_path = os.path.join(final_filemanager_path, folder.get_path())
+
+        initial_path = os.path.join(
+            settings.NETWORK_STORAGE_ROOT, file.path)
+        file_name = file.file_name
+        final_destination_path = os.path.join(folder_path,
+                                              file_name)
+        if not os.path.exists(final_destination_path):
+            shutil.copy(initial_path, final_destination_path)
+            new_file = create_file(folder, file_name, f".{file.extension}", file.size)
+            add_content_size(folder, file.size)
+            return HttpResponse('File Copied successfully', status=status.HTTP_200_OK)
+        else:
+            return HttpResponse("a file with same name already exists", status=status.HTTP_400_BAD_REQUEST)
+
     @action(methods=['post'], detail=False, url_name='zip', url_path='zip')
     def zip(self, request):
         data = request.data
