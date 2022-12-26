@@ -283,12 +283,12 @@ class FileView(viewsets.ModelViewSet):
     @action(methods=['post'], detail=False, url_name='copy_file', url_path='copy_file')
     def copy(self, request):
         data = request.data
-        file_id = int(data.get('file_id', None))
+        file_id = int(data.get('id', None))
         destination = int(data.get('destination', None))
         try:
             file = File.objects.get(pk=file_id)
         except File.DoesNotExist:
-            return HttpResponse('file doesnot found', status=status.HTTP_400_BAD_REQUEST)
+            return HttpResponse('file not found', status=status.HTTP_400_BAD_REQUEST)
         try:
             folder = Folder.objects.get(pk=destination)
         except Folder.DoesNotExist:
@@ -319,6 +319,8 @@ class FileView(viewsets.ModelViewSet):
         final_destination_path = os.path.join(folder_path,
                                               file_name)
         if not os.path.exists(final_destination_path):
+            if not os.path.isdir(folder_path):
+                os.mkdir(folder_path)
             shutil.copy(initial_path, final_destination_path)
             new_file = create_file(folder, file_name, f".{file.extension}", file.size)
             add_content_size(folder, file.size)
