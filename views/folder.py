@@ -259,6 +259,63 @@ class FolderViewSet(viewsets.ModelViewSet):
         serializer = subFolderSerializer(parents, many=True)
         return Response(serializer.data)
 
+    @action(methods=['post'], detail=False, url_name='cut_folder', url_path='cut_folder')
+    def cut(self, request):
+        data = request.data
+        folder_id = int(data.get('id', None))
+        destination = int(data.get('destination', None))
+        try:
+            initial_folder = Folder.objects.get(pk=folder_id)
+        except Folder.DoesNotExist:
+            return HttpResponse('folder not found', status=status.HTTP_400_BAD_REQUEST)
+        self.check_object_permissions(self.request, initial_folder)
+        try:
+            final_folder = Folder.objects.get(pk=destination)
+        except Folder.DoesNotExist:
+            return HttpResponse('destination folder not found', status=status.HTTP_400_BAD_REQUEST)
+        self.check_object_permissions(self.request, final_folder)
+        try:
+            file_manager = final_folder.filemanager
+            person = Person.objects.get(pk=final_folder.person_id)
+            root_folder = Folder.objects.get(filemanager = file_manager, parent = None, person = person)
+        except Exception as e:
+            return HttpResponse(f'Unable to fetch root folder due to {e}', status=status.HTTP_400_BAD_REQUEST)
+
+        if root_folder.content_size + initial_folder.content_size > root_folder.max_space:
+            return HttpResponse('Space limit exceeded', status=status.HTTP_400_BAD_REQUEST)
+        
+        if final_folder.filemanager.is_public:
+            final_base_location = 'public'
+        else:
+            final_base_location = 'protected'
+
+        if initial_folder.filemanager.is_public:
+            initial_base_location = 'public'
+        else:
+            initial_base_location = 'protected'
+
+        final_filemanager_path = os.path.join(
+            settings.NETWORK_STORAGE_ROOT, final_base_location, final_folder.filemanager.filemanager_name)
+        final_folder_path = os.path.join(final_filemanager_path, final_folder.get_path())
+
+        initial_filemanager_path = os.path.join(
+            settings.NETWORK_STORAGE_ROOT, initial_base_location, initial_folder.filemanager.filemanager_name)
+        initial_folder_path = os.path.join(initial_filemanager_path, initial_folder.get_path())
+
+        folder_name = initial_folder.folder_name
+        final_destination_path = os.path.join(final_folder_path,
+                                              folder_name)
+        if not os.path.exists(final_destination_path):
+            if not os.path.isdir(final_folder_path):
+                os.mkdir(final_folder_path)
+            shift_single_folder(initial_folder_path, final_folder, final_filemanager_path, final_folder.filemanager, folder_name)
+            shutil.move(initial_folder_path, final_destination_path)
+            reduce_content_size(initial_folder.parent, initial_folder.content_size)
+            initial_folder.delete()
+            return HttpResponse('Folder Cut successfully', status=status.HTTP_200_OK)
+        else:
+            return HttpResponse("a folder with same name already exists", status=status.HTTP_400_BAD_REQUEST)
+
     @action(methods=['post'], detail=False, url_name='copy_folder', url_path='copy_folder')
     def copy(self, request):
         data = request.data
