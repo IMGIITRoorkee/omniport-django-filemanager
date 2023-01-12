@@ -268,6 +268,7 @@ class FolderViewSet(viewsets.ModelViewSet):
             initial_folder = Folder.objects.get(pk=folder_id)
         except Folder.DoesNotExist:
             return HttpResponse('folder not found', status=status.HTTP_400_BAD_REQUEST)
+        self.check_object_permissions(self.request, initial_folder)
         try:
             final_folder = Folder.objects.get(pk=destination)
         except Folder.DoesNotExist:
