@@ -1,4 +1,5 @@
 from django_filemanager.models import Folder, FileManager
+from django_filemanager.safe_eval import safe_eval_filemanager
 from kernel.managers.get_role import get_all_roles
 from kernel.models import Person
 from shell.models import Student, FacultyMember
@@ -12,15 +13,14 @@ def update_root_folders(person):
                 person=person, root=None, parent=None, filemanager=filemanager)
         except Folder.DoesNotExist:
             try:
-                code = compile(
-                    filemanager.filemanager_access_permissions, '<bool>', 'eval')
-                filemanager_access_permission = eval(code)
+                filemanager_access_permission = safe_eval_filemanager(
+                    filemanager.filemanager_access_permissions, person)
             except:
                 return dict({'status': 400, 'message': f'{filemanager} : problem in evaluating access permission'})
 
             if filemanager_access_permission:
                 try:
-                    unique_name = eval(filemanager.folder_name_template)
+                    unique_name = safe_eval_filemanager(filemanager.folder_name_template, person)
                 except:
                     return dict({'status': 400, 'message': f'{filemanager} : problem in evaluating folder name template'})
                 try:

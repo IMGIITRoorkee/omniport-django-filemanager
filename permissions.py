@@ -1,5 +1,6 @@
 from rest_framework import permissions
 from django_filemanager.models import Folder, File, FileManager
+from django_filemanager.safe_eval import safe_eval_filemanager
 from django_filemanager.utils import is_folder_shared
 from django.core.exceptions import ValidationError
 from kernel.models import Person
@@ -140,11 +141,9 @@ class HasRootFolderPermission(permissions.IsAuthenticated):
         """
         person = request.person
         try:
-            code = compile(
-                filemanager.filemanager_access_permissions, '<bool>', 'eval')
-            if(eval(code)):
+            if safe_eval_filemanager(filemanager.filemanager_access_permissions, person):
                 return True
-        except:
+        except Exception:
             return False
         return False
 
