@@ -35,7 +35,7 @@ class subFolderSerializer(ModelSerializer):
         if(not obj.filemanager.is_public):
             return None
         try:
-            baseUrl = eval(obj.filemanager.base_public_url)
+            baseUrl = obj.filemanager.base_public_url
             if obj.root:
                 root_folder_path = f"{obj.root.get_path()}/"
             else:
@@ -71,7 +71,7 @@ class FileSerializer(ModelSerializer):
         if(not obj.folder.filemanager.is_public):
             return obj.upload.name
         try:
-            baseUrl = eval(obj.folder.filemanager.base_public_url)
+            baseUrl = obj.folder.filemanager.base_public_url
             if obj.folder.root:
                 root_folder_path = f"{obj.folder.root.get_path()}/"
             else:

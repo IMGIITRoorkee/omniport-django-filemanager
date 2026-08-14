@@ -1,10 +1,10 @@
 from rest_framework import permissions
+from django_filemanager.expressions import evaluate_access_permission
 from django_filemanager.models import Folder, File, FileManager
 from django_filemanager.utils import is_folder_shared
 from django.core.exceptions import ValidationError
 from kernel.models import Person
 from kernel.utils.rights import has_omnipotence_rights
-from kernel.managers.get_role import get_all_roles
 
 
 class HasItemPermissions(permissions.BasePermission):
@@ -138,11 +138,9 @@ class HasRootFolderPermission(permissions.IsAuthenticated):
         """
             Checks if the user has access_permissions for filemanager
         """
-        person = request.person
         try:
-            code = compile(
-                filemanager.filemanager_access_permissions, '<bool>', 'eval')
-            if(eval(code)):
+            if evaluate_access_permission(
+                    filemanager.filemanager_access_permissions):
                 return True
         except:
             return False
