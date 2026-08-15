@@ -28,6 +28,8 @@ from django_filemanager.constants import SHARED, STARRED, DEFAULT_ROOT_FOLDER_NA
 
 class AllSharedItems(APIView):
 
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, *args, **kwargs):
         filemanager_name = request.query_params.get('filemanager', None)
         try:
@@ -66,6 +68,8 @@ class AllStarredItems(APIView):
     """
     This view allows user to view all the starred items
     """
+
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         filemanager_name = request.query_params.get('filemanager', None)

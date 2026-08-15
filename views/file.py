@@ -34,6 +34,8 @@ class FileAccessView(APIView):
     2. The file is public
     """
 
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, format=None):
         path = request.path
         url = path.replace(BASE_PROTECTED_URL, '', 1)

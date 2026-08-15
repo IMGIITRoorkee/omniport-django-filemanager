@@ -57,6 +57,9 @@ def reduce_content_size(parent_folder, size):
 
 
 def is_file_shared(person, file):
+    # share_with_all means every Channeli user, so an absent person is not one
+    if person is None:
+        return False
     parent_folder = file.folder
     if person in file.shared_users.all() or file.share_with_all:
         return True
@@ -68,6 +71,9 @@ def is_file_shared(person, file):
 
 
 def is_folder_shared(person, folder):
+    # share_with_all means every Channeli user, so an absent person is not one
+    if person is None:
+        return False
     parent_folder = folder
     if person in folder.shared_users.all() or folder.share_with_all:
         return True
