@@ -31,6 +31,8 @@ class FileManagerViewSet(viewsets.ModelViewSet):
                 'folder_name_template', None)
             filemanager_access_permissions = request.data.get(
                 'filemanager_access_permissions', None)
+            if not filemanager_access_permissions:
+                return Response('filemanager_access_permissions is required', status=400)
             if folder_name_template == None or folder_name_template == '':
                 folder_name_template = DEFAULT_ROOT_FOLDER_NAME_TEMPLATE
             filemanager = FileManager.objects.create(
@@ -56,13 +58,13 @@ class FileManagerViewSet(viewsets.ModelViewSet):
             error_access_permission = 0
             for i in range(0, len(people)):
                 person = people[i]
-                if(error_folder_name_template + error_folder_name_template > 20):
+                if(error_access_permission + error_folder_name_template > 20):
                     filemanager.delete()
                     return Response(f'access_permissions failed for {error_access_permission} people and folder_name_template failed for {error_folder_name_template} person', status=400)
 
                 try:
                     filemanager_access_permission = evaluate_access_permission(
-                        filemanager.filemanager_access_permissions)
+                        filemanager.filemanager_access_permissions, person)
                 except:
                     error_access_permission += 1
                     continue

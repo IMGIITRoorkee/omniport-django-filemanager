@@ -1,3 +1,5 @@
+import logging
+
 from django_filemanager.expressions import (
     evaluate_access_permission,
     resolve_folder_name,
@@ -5,39 +7,42 @@ from django_filemanager.expressions import (
 from django_filemanager.models import Folder, FileManager
 from kernel.models import Person
 
+logger = logging.getLogger(__name__)
+
 
 def update_root_folders(person):
+    """
+    Give the person a root folder in every filemanager that admits them. A
+    filemanager whose configuration does not resolve is skipped, because every
+    listing in the service walks this loop and one bad row must not empty it.
+    :param person: the person whose root folders are brought up to date
+    """
+
     for filemanager in FileManager.objects.all():
         try:
-            folder = Folder.objects.get(
+            Folder.objects.get(
                 person=person, root=None, parent=None, filemanager=filemanager)
+            continue
         except Folder.DoesNotExist:
-            try:
-                filemanager_access_permission = evaluate_access_permission(
-                    filemanager.filemanager_access_permissions)
-            except:
-                return dict({'status': 400, 'message': f'{filemanager} : problem in evaluating access permission'})
+            pass
 
-            if filemanager_access_permission:
-                try:
-                    unique_name = resolve_folder_name(
-                        filemanager.folder_name_template, person)
-                except:
-                    return dict({'status': 400, 'message': f'{filemanager} : problem in evaluating folder name template'})
-                try:
-                    folder = Folder(filemanager=filemanager,
-                                    folder_name=unique_name,
-                                    person=person,
-                                    max_space=filemanager.max_space,
-                                    starred=False,
-                                    root=None,
-                                    parent=None,
-                                    )
-                    folder.save()
-                except:
-                    return dict({'status': 400, 'message': 'Unable to create root folder'})
-
-    return dict({'status': 200, 'message': 'found filemanagers'})
+        try:
+            if not evaluate_access_permission(
+                    filemanager.filemanager_access_permissions, person):
+                continue
+            folder_name = resolve_folder_name(
+                filemanager.folder_name_template, person)
+            Folder.objects.create(filemanager=filemanager,
+                                  folder_name=folder_name,
+                                  person=person,
+                                  max_space=filemanager.max_space,
+                                  starred=False,
+                                  root=None,
+                                  parent=None,
+                                  )
+        except Exception:
+            logger.exception(
+                'No root folder for %s in %s', person, filemanager)
 
 
 def add_content_size(parent_folder, size):

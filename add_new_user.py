@@ -29,7 +29,7 @@ def add_new_user(person_unique_key, person_unique_value, filemanager_name, root_
             person=person, root=None, parent=None, filemanager=filemanager)
     except Folder.DoesNotExist:
         filemanager_access_permission = evaluate_access_permission(
-            filemanager.filemanager_access_permissions)
+            filemanager.filemanager_access_permissions, person)
         if not filemanager_access_permission:
             print("user does not have permission to this filmanager")
             return

@@ -18,7 +18,7 @@ from kernel.models import Person
 
 from django_filemanager.serializers import FileSerializer
 from django_filemanager.models import Folder, File, FileManager, BASE_PROTECTED_URL
-from django_filemanager.permissions import HasFileOwnerPermission, HasFilesOwnerPermission, HasFolderOwnerPermission
+from django_filemanager.permissions import IsOwner
 from django_filemanager.constants import BATCH_SIZE
 from django_filemanager.utils import add_content_size, reduce_content_size, is_file_shared
 from django_filemanager.views.utils.file import create_file, file_exists
@@ -80,18 +80,7 @@ class FileView(viewsets.ModelViewSet):
     serializer_class = FileSerializer
     parser_classes = (FormParser, MultiPartParser, JSONParser)
 
-    permission_classes_by_action = {
-        'destroy': [HasFileOwnerPermission],
-        'bulk_delete': [HasFilesOwnerPermission],
-        'bulk_create': [HasFolderOwnerPermission],
-        'default': [IsAuthenticated],
-    }
-
-    def get_permissions(self):
-        try:
-            return [permission() for permission in self.permission_classes_by_action[self.action]]
-        except KeyError as e:
-            return [permission() for permission in self.permission_classes_by_action['default']]
+    permission_classes = [IsOwner]
 
     def get_queryset(self):
         person = self.request.person
@@ -107,8 +96,13 @@ class FileView(viewsets.ModelViewSet):
             return HttpResponse('parent folder doesnot found', status=status.HTTP_400_BAD_REQUEST)
         self.check_object_permissions(self.request, parent_folder)
 
-        file_size = int(data.get('size'))
-        
+        upload = request.FILES.get('upload')
+        if upload is None:
+            return HttpResponse('an uploaded file is required', status=status.HTTP_400_BAD_REQUEST)
+        # The size decides the quota and the path decides what is served later,
+        # so both come from the uploaded file rather than from the payload
+        file_size = upload.size
+
         try:
             file_manager = parent_folder.filemanager
             person = Person.objects.get(pk=parent_folder.person_id)
@@ -121,11 +115,11 @@ class FileView(viewsets.ModelViewSet):
 
         starred = data.get('starred') == 'True'
 
-        new_file = File.objects.create(upload=data.get('upload'),
+        new_file = File.objects.create(upload=upload,
                                        file_name=data.get('file_name'),
                                        extension=data.get('extension'),
                                        starred=starred,
-                                       size=int(data.get('size')),
+                                       size=file_size,
                                        folder=parent_folder,
                                        )
         serializer = self.get_serializer(new_file)
@@ -136,7 +130,10 @@ class FileView(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def bulk_create(self, request, *args, **kwargs):
         data = dict(request.data)
-        no_of_files = len(data.get('file_name'))
+        uploads = request.FILES.getlist('upload')
+        names = data.get('file_name', [])
+        extensions = data.get('extension', [])
+        flags = data.get('starred', [])
         batch = []
         try:
             folder = Folder.objects.get(pk=int(data.get('folder')[0]))
@@ -144,25 +141,24 @@ class FileView(viewsets.ModelViewSet):
         except Folder.DoesNotExist:
             return HttpResponse('parent folder doesnot found', status=status.HTTP_400_BAD_REQUEST)
         self.check_object_permissions(self.request, parent_folder)
+        if not uploads or not len(uploads) == len(names) == len(extensions) == len(flags):
+            return HttpResponse('one file name, extension and starred flag per uploaded file is required', status=status.HTTP_400_BAD_REQUEST)
         if not parent_folder.root == None:
             root_folder = parent_folder.root
         else:
             root_folder = parent_folder
-        total_file_size = 0
-        for i in range(0, no_of_files):
-            total_file_size = total_file_size + int(data.get('size')[i])
+        total_file_size = sum(upload.size for upload in uploads)
         if root_folder.content_size + total_file_size > root_folder.max_space:
             return HttpResponse('Space limit exceeded', status=status.HTTP_400_BAD_REQUEST)
 
         add_content_size(parent_folder, total_file_size)
 
-        for i in range(0, no_of_files):
-            starred = data.get('starred')[i] == 'True'
-            new_file = File(upload=data.get('upload')[i],
-                            file_name=data.get('file_name')[i],
-                            extension=data.get('extension')[i],
-                            starred=starred,
-                            size=int(data.get('size')[i]),
+        for upload, name, extension, flag in zip(uploads, names, extensions, flags):
+            new_file = File(upload=upload,
+                            file_name=name,
+                            extension=extension,
+                            starred=flag == 'True',
+                            size=upload.size,
                             folder=folder,
                             )
             batch.append(new_file)
@@ -171,9 +167,10 @@ class FileView(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def update(self, request, *args, **kwargs):
-        data = dict(request.data)
-        file = File.objects.get(id=kwargs['pk'])
-        if data.get('file_name') and (data.get('file_name') != file.file_name):
+        file = self.get_object()
+        # A name is a name, never a path: basename keeps the rename in the folder
+        file_name = os.path.basename(request.data.get('file_name') or '')
+        if file_name and file_name != file.file_name:
             folder_name = str(file.folder.path)
 
             if(file.folder.filemanager.is_public):
@@ -188,8 +185,7 @@ class FileView(viewsets.ModelViewSet):
                 app_name,
                 folder_name,
             )
-            prev_filename = file.file_name
-            updated_filename = str(data.get('file_name')[0])
+            updated_filename = file_name
             # Full path to the file
             initial_destination = os.path.join(
                 settings.NETWORK_STORAGE_ROOT,
@@ -251,12 +247,8 @@ class FileView(viewsets.ModelViewSet):
 
     @ action(detail=True, methods=['PATCH'], )
     def update_shared_users(self, request, *args, **kwargs):
-        pk = kwargs['pk']
         share_with_all = request.data.get('share_with_all') == 'true'
-        try:
-            file = File.objects.get(pk=pk)
-        except File.DoesNotExist:
-            return HttpResponse('File Not available', status=status.HTTP_400_BAD_REQUEST)
+        file = self.get_object()
 
         try:
             shared_users = list(
