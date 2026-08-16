@@ -1,11 +1,6 @@
-from genericpath import isdir
 import os
 import re
 import shutil
-import subprocess
-
-from django.core.files import File as DjangoFile
-from django.conf import settings
 
 from django_filemanager.models import Folder
 from django_filemanager.views.utils.file import create_file
@@ -35,53 +30,36 @@ def sanitize_folder_name(parent_folder_path, folder_name, freq=0):
     else:
         return folder_name
 
-def folder_exists(parent_folder, filemanager_path):
-    """This function recursively checks whether parent folders exists or not and creates them if needed
-
-    Arg: 
-        parent_folder (instance): parent folder of file
-        filemanager_path (str): path of filemanager
-    """
-    if parent_folder.parent is None and not os.path.isdir(os.path.join(filemanager_path, parent_folder.path)):
-        os.mkdir(os.path.join(filemanager_path, parent_folder.path))
-
-    elif parent_folder.parent is None and os.path.isdir(os.path.join(filemanager_path, parent_folder.path)):
-        return
-
-    else:
-        if not os.path.isdir(os.path.join(filemanager_path, parent_folder.parent.path)):
-            folder_exists(parent_folder.parent, filemanager_path)
-        
-        if not os.path.isdir(os.path.join(filemanager_path, parent_folder.path)):
-            os.mkdir(os.path.join(filemanager_path, parent_folder.path))
-
 
 def shift_single_folder(folder_path, parent_folder, filemanager_path, filemanager, foldername):
     """This function creates a new folder model and loops through its content
 
+    The tree is expected to already sit at folder_path. Every file it holds is
+    moved to the opaque path its new model names.
+
     Args:
-        folder_path (str): temporary folder path
+        folder_path (str): path of the folder to take over
         parent_folder (instance): instance of parent folder
         filemanager_path (str): path of filemanager
         filemanager (instance): instance of filemanager
         foldername (str): folder name
     """
-    os.listdir(folder_path)
-
     folder_size = os.path.getsize(folder_path)
 
     new_folder = Folder.objects.create(folder_name=foldername, parent=parent_folder,
                                        filemanager=parent_folder.filemanager, root=parent_folder.root, person=parent_folder.person,
-                                       path=os.path.join(parent_folder.path, '/', foldername), content_size=folder_size)
+                                       content_size=folder_size)
 
     for file_or_dir in os.listdir(folder_path):
-        if os.path.isfile(os.path.join(folder_path, file_or_dir)) and not os.path.exists(os.path.join(new_folder.path, file_or_dir)):
-            extension = os.path.splitext(
-                os.path.join(folder_path, file_or_dir))[-1]
-            file_size = os.path.getsize(os.path.join(folder_path, file_or_dir))
+        path = os.path.join(folder_path, file_or_dir)
+        if os.path.isfile(path):
+            extension = os.path.splitext(path)[-1]
+            file_size = os.path.getsize(path)
             add_content_size(new_folder, file_size)
             file_obj = create_file(
                 new_folder, file_or_dir, extension, file_size)
-        elif os.path.isdir(os.path.join(folder_path, file_or_dir)) and not os.path.exists(os.path.join(new_folder.path, file_or_dir)):
-            shift_single_folder(os.path.join(
-                folder_path, file_or_dir), new_folder, filemanager_path, filemanager, file_or_dir)
+            os.makedirs(os.path.dirname(file_obj.upload.path), exist_ok=True)
+            shutil.move(path, file_obj.upload.path)
+        elif os.path.isdir(path):
+            shift_single_folder(
+                path, new_folder, filemanager_path, filemanager, file_or_dir)

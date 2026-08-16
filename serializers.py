@@ -54,6 +54,15 @@ class FileSerializer(ModelSerializer):
         fields = '__all__'
         read_only_fields = ['shared_users']
 
+    def validate_file_name(self, value):
+        """
+        Keep a display name a name: it is never a path
+        :param value: the display name the caller asked for
+        :return: the same name, without any directory the caller wrote into it
+        """
+
+        return os.path.basename(value)
+
     def get_file_url(self, obj):
         if(not obj.folder.filemanager.is_public):
             return obj.upload.name

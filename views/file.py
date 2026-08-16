@@ -1,4 +1,3 @@
-from genericpath import isfile
 import os
 import shutil
 import re
@@ -21,8 +20,8 @@ from django_filemanager.models import Folder, File, FileManager, BASE_PROTECTED_
 from django_filemanager.permissions import IsOwner
 from django_filemanager.constants import BATCH_SIZE
 from django_filemanager.utils import add_content_size, reduce_content_size, is_file_shared
-from django_filemanager.views.utils.file import create_file, file_exists
-from django_filemanager.views.utils.copy_folder import sanitize_folder_name, shift_single_folder, folder_exists
+from django_filemanager.views.utils.file import create_file
+from django_filemanager.views.utils.copy_folder import sanitize_folder_name, shift_single_folder
 
 
 class FileAccessView(APIView):
@@ -114,9 +113,13 @@ class FileView(viewsets.ModelViewSet):
             return HttpResponse('Space limit exceeded', status=status.HTTP_400_BAD_REQUEST)
 
         starred = data.get('starred') == 'True'
+        # The stored name is opaque, so file_name is the only record of what
+        # the file is called, and it is what the extension is taken from
+        file_name = os.path.basename(data.get('file_name') or upload.name)
+        upload.name = file_name
 
         new_file = File.objects.create(upload=upload,
-                                       file_name=data.get('file_name'),
+                                       file_name=file_name,
                                        extension=data.get('extension'),
                                        starred=starred,
                                        size=file_size,
@@ -154,8 +157,9 @@ class FileView(viewsets.ModelViewSet):
         add_content_size(parent_folder, total_file_size)
 
         for upload, name, extension, flag in zip(uploads, names, extensions, flags):
+            upload.name = os.path.basename(name or upload.name)
             new_file = File(upload=upload,
-                            file_name=name,
+                            file_name=upload.name,
                             extension=extension,
                             starred=flag == 'True',
                             size=upload.size,
@@ -165,45 +169,6 @@ class FileView(viewsets.ModelViewSet):
         files = File.objects.bulk_create(batch, BATCH_SIZE[0])
         serializer = self.get_serializer(files, many=True)
         return Response(serializer.data)
-
-    def update(self, request, *args, **kwargs):
-        file = self.get_object()
-        # A name is a name, never a path: basename keeps the rename in the folder
-        file_name = os.path.basename(request.data.get('file_name') or '')
-        if file_name and file_name != file.file_name:
-            folder_name = str(file.folder.path)
-
-            if(file.folder.filemanager.is_public):
-                base_location = "public"
-            else:
-                base_location = "protected"
-
-            app_name = str(
-                file.folder.filemanager.filemanager_name)
-            path = os.path.join(
-                base_location,
-                app_name,
-                folder_name,
-            )
-            updated_filename = file_name
-            # Full path to the file
-            initial_destination = os.path.join(
-                settings.NETWORK_STORAGE_ROOT,
-                file.upload.name
-            )
-            final_destination = os.path.join(
-                settings.NETWORK_STORAGE_ROOT,
-                path,
-                updated_filename,
-            )
-            upload_name = os.path.join(
-                path,
-                updated_filename
-            )
-            os.rename(initial_destination, final_destination)
-            file.upload.name = str(upload_name)
-            file.save()
-        return super().update(request, *args, **kwargs)
 
     @action(detail=False, methods=['post'])
     def bulk_delete(self, request):
@@ -298,30 +263,18 @@ class FileView(viewsets.ModelViewSet):
 
         if root_folder.content_size + file.size > root_folder.max_space:
             return HttpResponse('Space limit exceeded', status=status.HTTP_400_BAD_REQUEST)
-        
-        if folder.filemanager.is_public:
-            final_base_location = 'public'
-        else:
-            final_base_location = 'protected'
 
-        final_filemanager_path = os.path.join(
-            settings.NETWORK_STORAGE_ROOT, final_base_location, folder.filemanager.filemanager_name)
-        folder_path = os.path.join(final_filemanager_path, folder.get_path())
+        file_name = file.file_name
+        if folder.files.filter(file_name=file_name).exists():
+            return HttpResponse("a file with same name already exists", status=status.HTTP_400_BAD_REQUEST)
 
         initial_path = os.path.join(
             settings.NETWORK_STORAGE_ROOT, file.path)
-        file_name = file.file_name
-        final_destination_path = os.path.join(folder_path,
-                                              file_name)
-        if not os.path.exists(final_destination_path):
-            if not os.path.isdir(folder_path):
-                os.mkdir(folder_path)
-            shutil.copy(initial_path, final_destination_path)
-            new_file = create_file(folder, file_name, f".{file.extension}", file.size)
-            add_content_size(folder, file.size)
-            return HttpResponse('File Copied successfully', status=status.HTTP_200_OK)
-        else:
-            return HttpResponse("a file with same name already exists", status=status.HTTP_400_BAD_REQUEST)
+        new_file = create_file(folder, file_name, f".{file.extension}", file.size)
+        os.makedirs(os.path.dirname(new_file.upload.path), exist_ok=True)
+        shutil.copy(initial_path, new_file.upload.path)
+        add_content_size(folder, file.size)
+        return HttpResponse('File Copied successfully', status=status.HTTP_200_OK)
 
     @action(methods=['post'], detail=False, url_name='cut_file', url_path='cut_file')
     def cut(self, request):
@@ -347,32 +300,20 @@ class FileView(viewsets.ModelViewSet):
 
         if root_folder.content_size + file.size > root_folder.max_space:
             return HttpResponse('Space limit exceeded', status=status.HTTP_400_BAD_REQUEST)
-        
-        if folder.filemanager.is_public:
-            final_base_location = 'public'
-        else:
-            final_base_location = 'protected'
 
-        final_filemanager_path = os.path.join(
-            settings.NETWORK_STORAGE_ROOT, final_base_location, folder.filemanager.filemanager_name)
-        folder_path = os.path.join(final_filemanager_path, folder.get_path())
+        file_name = file.file_name
+        if folder.files.filter(file_name=file_name).exists():
+            return HttpResponse("a file with same name already exists", status=status.HTTP_400_BAD_REQUEST)
 
         initial_path = os.path.join(
             settings.NETWORK_STORAGE_ROOT, file.path)
-        file_name = file.file_name
-        final_destination_path = os.path.join(folder_path,
-                                              file_name)
-        if not os.path.exists(final_destination_path):
-            if not os.path.isdir(folder_path):
-                os.mkdir(folder_path)
-            shutil.move(initial_path, final_destination_path)
-            new_file = create_file(folder, file_name, f".{file.extension}", file.size)
-            add_content_size(folder, file.size)
-            reduce_content_size(file.folder, file.size)
-            file.delete()
-            return HttpResponse('File Cut successfully', status=status.HTTP_200_OK)
-        else:
-            return HttpResponse("a file with same name already exists", status=status.HTTP_400_BAD_REQUEST)
+        new_file = create_file(folder, file_name, f".{file.extension}", file.size)
+        os.makedirs(os.path.dirname(new_file.upload.path), exist_ok=True)
+        shutil.move(initial_path, new_file.upload.path)
+        add_content_size(folder, file.size)
+        reduce_content_size(file.folder, file.size)
+        file.delete()
+        return HttpResponse('File Cut successfully', status=status.HTTP_200_OK)
 
     @action(methods=['post'], detail=False, url_name='zip', url_path='zip')
     def zip(self, request):
@@ -414,26 +355,23 @@ class FileView(viewsets.ModelViewSet):
             settings.NETWORK_STORAGE_ROOT, base_location, parent_folder.filemanager.filemanager_name)
         for content in contents:
             path = os.path.join(directory_path, content)
-            final_destination = os.path.join(parent_folder.path, content)
-            if os.path.isdir(path) and not os.path.exists(final_destination):
+            if os.path.isdir(path):
                 content = sanitize_folder_name(os.path.join(
                     filemanager_path, parent_folder.get_path()), content)
+                destination = os.path.join(
+                    filemanager_path, parent_folder.get_path(), content)
+                os.makedirs(os.path.dirname(destination), exist_ok=True)
+                shutil.move(path, destination)
                 shift_single_folder(
-                    path, parent_folder, filemanager_path, parent_folder.filemanager, content)
-                shutil.move(path, os.path.join(
-                    filemanager_path, parent_folder.get_path(), content))
-            elif os.path.isfile(path) and not os.path.exists(final_destination):
-                parent_path = filemanager_path
-                if not os.path.isdir(parent_path):
-                    os.mkdir(parent_path)
-                folder_exists(parent_folder, parent_path)
-                parent_path = os.path.join(parent_path, parent_folder.get_path())
-                content = file_exists(parent_path, content)
+                    destination, parent_folder, filemanager_path,
+                    parent_folder.filemanager, content)
+            elif os.path.isfile(path):
                 extension = os.path.splitext(path)[1]
                 filesize = os.path.getsize(path)
                 file_obj = create_file(
                     parent_folder, content, extension, filesize)
-                shutil.copy(path, os.path.join(
-                    parent_path, content))
+                os.makedirs(
+                    os.path.dirname(file_obj.upload.path), exist_ok=True)
+                shutil.copy(path, file_obj.upload.path)
         add_content_size(parent_folder, size)
         return HttpResponse('Created', status=status.HTTP_200_OK)

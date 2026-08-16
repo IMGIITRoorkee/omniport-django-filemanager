@@ -290,10 +290,9 @@ class FolderViewSet(viewsets.ModelViewSet):
         final_destination_path = os.path.join(final_folder_path,
                                               folder_name)
         if not os.path.exists(final_destination_path):
-            if not os.path.isdir(final_folder_path):
-                os.mkdir(final_folder_path)
-            shift_single_folder(initial_folder_path, final_folder, final_filemanager_path, final_folder.filemanager, folder_name)
+            os.makedirs(final_folder_path, exist_ok=True)
             shutil.move(initial_folder_path, final_destination_path)
+            shift_single_folder(final_destination_path, final_folder, final_filemanager_path, final_folder.filemanager, folder_name)
             reduce_content_size(initial_folder.parent, initial_folder.content_size)
             initial_folder.delete()
             return HttpResponse('Folder Cut successfully', status=status.HTTP_200_OK)
@@ -347,10 +346,9 @@ class FolderViewSet(viewsets.ModelViewSet):
         final_destination_path = os.path.join(final_folder_path,
                                               folder_name)
         if not os.path.exists(final_destination_path):
-            if not os.path.isdir(final_folder_path):
-                os.mkdir(final_folder_path)
-            shift_single_folder(initial_folder_path, final_folder, final_filemanager_path, final_folder.filemanager, folder_name)
+            os.makedirs(final_folder_path, exist_ok=True)
             shutil.copytree(initial_folder_path, final_destination_path)
+            shift_single_folder(final_destination_path, final_folder, final_filemanager_path, final_folder.filemanager, folder_name)
             return HttpResponse('Folder Copied successfully', status=status.HTTP_200_OK)
         else:
             return HttpResponse("a folder with same name already exists", status=status.HTTP_400_BAD_REQUEST)
