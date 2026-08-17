@@ -1,4 +1,7 @@
 import logging
+import os
+
+from rest_framework.serializers import ValidationError
 
 from django_filemanager.expressions import (
     evaluate_access_permission,
@@ -8,6 +11,21 @@ from django_filemanager.models import Folder, FileManager
 from kernel.models import Person
 
 logger = logging.getLogger(__name__)
+
+
+def safe_item_name(name):
+    """
+    Reduce a caller supplied file or folder name to a name. Every stored name
+    is later joined onto a directory to build a path on disk, so a separator
+    or a parent reference in one escapes the storage tree.
+    :param name: the name the caller asked for
+    :return: the same name, once it cannot traverse
+    """
+
+    name = (name or '').strip()
+    if not name or name in ('.', '..') or name != os.path.basename(name):
+        raise ValidationError('a name is required and cannot traverse')
+    return name
 
 
 def update_root_folders(person):

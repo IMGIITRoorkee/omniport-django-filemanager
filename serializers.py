@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from formula_one.serializers.base import ModelSerializer
 from django_filemanager.expressions import resolve_public_url
+from django_filemanager.utils import safe_item_name
 from django_filemanager.models import Folder, File, FileManager, BASE_PROTECTED_URL
 from kernel.models import Person
 
@@ -54,6 +55,15 @@ class FileSerializer(ModelSerializer):
         fields = '__all__'
         read_only_fields = ['shared_users']
 
+    def validate_file_name(self, value):
+        """
+        Refuse a name that would traverse out of the folder it sits in
+        :param value: the file name the caller asked for
+        :return: the same name, once it cannot traverse
+        """
+
+        return safe_item_name(value)
+
     def get_file_url(self, obj):
         if(not obj.folder.filemanager.is_public):
             return obj.upload.name
@@ -84,6 +94,15 @@ class FolderSerializer(ModelSerializer):
         fields = '__all__'
         read_only_fields = ['person', 'filemanagername', 'max_space'
                             'content_size', 'shared_users', 'path', 'is_filemanager_public']
+
+    def validate_folder_name(self, value):
+        """
+        Refuse a name that would traverse out of the folder it is created in
+        :param value: the folder name the caller asked for
+        :return: the same name, once it cannot traverse
+        """
+
+        return safe_item_name(value)
 
     def validate(self, attrs):
         """

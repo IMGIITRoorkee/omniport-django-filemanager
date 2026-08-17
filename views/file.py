@@ -20,7 +20,7 @@ from django_filemanager.serializers import FileSerializer
 from django_filemanager.models import Folder, File, FileManager, BASE_PROTECTED_URL
 from django_filemanager.permissions import IsOwner
 from django_filemanager.constants import BATCH_SIZE
-from django_filemanager.utils import add_content_size, reduce_content_size, is_file_shared
+from django_filemanager.utils import add_content_size, reduce_content_size, is_file_shared, safe_item_name
 from django_filemanager.views.utils.file import create_file, file_exists
 from django_filemanager.views.utils.copy_folder import sanitize_folder_name, shift_single_folder, folder_exists
 
@@ -116,7 +116,8 @@ class FileView(viewsets.ModelViewSet):
         starred = data.get('starred') == 'True'
 
         new_file = File.objects.create(upload=upload,
-                                       file_name=data.get('file_name'),
+                                       file_name=safe_item_name(
+                                           data.get('file_name')),
                                        extension=data.get('extension'),
                                        starred=starred,
                                        size=file_size,
@@ -155,7 +156,7 @@ class FileView(viewsets.ModelViewSet):
 
         for upload, name, extension, flag in zip(uploads, names, extensions, flags):
             new_file = File(upload=upload,
-                            file_name=name,
+                            file_name=safe_item_name(name),
                             extension=extension,
                             starred=flag == 'True',
                             size=upload.size,
@@ -168,8 +169,8 @@ class FileView(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         file = self.get_object()
-        # A name is a name, never a path: basename keeps the rename in the folder
-        file_name = os.path.basename(request.data.get('file_name') or '')
+        requested_name = request.data.get('file_name')
+        file_name = safe_item_name(requested_name) if requested_name else ''
         if file_name and file_name != file.file_name:
             folder_name = str(file.folder.path)
 
