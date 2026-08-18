@@ -1,14 +1,42 @@
 from rest_framework import permissions
-from django_filemanager.models import Folder, File, FileManager
+from django_filemanager.expressions import evaluate_access_permission
+from django_filemanager.models import Folder, File
 from django_filemanager.utils import is_folder_shared
 from django.core.exceptions import ValidationError
 from kernel.models import Person
 from kernel.utils.rights import has_omnipotence_rights
-from kernel.managers.get_role import get_all_roles
 
 
-class HasItemPermissions(permissions.BasePermission):
+def owner_of(item):
     """
+    Return the user a folder or a file belongs to
+    :param item: a Folder or a File
+    :return: the user who owns it, if any
+    """
+
+    person = item.person if isinstance(item, Folder) else item.folder.person
+    return person.user
+
+
+class IsOwner(permissions.IsAuthenticated):
+    """
+    Object level ownership of a folder or a file, or of an iterable of either.
+    Every action defaults to this, so an action that declares no permission of
+    its own still cannot reach another person's tree.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        if has_omnipotence_rights(user):
+            return True
+        items = [obj] if isinstance(obj, (Folder, File)) else list(obj)
+        return bool(items) and all(owner_of(item) == user for item in items)
+
+
+class HasItemPermissions(permissions.IsAuthenticated):
+    """
+    Authorise a shared item. Every branch validates the kind the view goes on
+    to serve, item2, so a sharing id for one kind cannot authorise the other.
     """
 
     def has_permission(self, request, view):
@@ -36,7 +64,7 @@ class HasItemPermissions(permissions.BasePermission):
                     raise Person.DoesNotExist
             except (Folder.DoesNotExist, ValidationError, Person.DoesNotExist):
                 return False
-        elif item == 'file':
+        elif item == 'file' and not is_folder:
             try:
                 file = File.objects.get(sharing_id=uu_id)
                 if file.shared_users.get(id=person.id):
@@ -52,85 +80,20 @@ class HasItemPermissions(permissions.BasePermission):
             try:
                 folder = Folder.objects.get(sharing_id=uu_id)
                 if folder.shared_users.get(id=person.id):
-                    dummy_file = File.objects.get(id=item_id)
-                    dummy_folder = dummy_file.folder
-                    while dummy_folder.parent.id != None:
-                        if dummy_folder.parent.id == folder.id:
+                    dummy_folder = File.objects.get(id=item_id).folder
+                    while dummy_folder != None:
+                        if dummy_folder.id == folder.id:
                             return True
-                        else:
-                            dummy_folder = Folder.objects.get(
-                                id=dummy_folder.parent.id)
+                        dummy_folder = dummy_folder.parent
                     return False
                 else:
                     raise Person.DoesNotExist
-            except (Folder.DoesNotExist, ValidationError, Person.DoesNotExist):
+            except (Folder.DoesNotExist, File.DoesNotExist, ValidationError,
+                    Person.DoesNotExist):
                 return False
         else:
             return False
         return False
-
-
-class HasFolderOwnerPermission(permissions.IsAuthenticated):
-    def has_object_permission(self, request, view, obj):
-        """
-          Checks if the user is the owner of the folder
-        """
-
-        user = request.user
-        if user is None:
-            return False
-        if has_omnipotence_rights(user):
-            return True
-
-        return (not obj.person.user is None) and obj.person.user == user
-
-
-class HasFoldersOwnerPermission(permissions.IsAuthenticated):
-    def has_object_permission(self, request, view, objList):
-        """
-            Checks if the user is the owner of the folder list
-        """
-        user = request.user
-        if user is None:
-            return False
-        if has_omnipotence_rights(user):
-            return True
-        for obj in objList:
-            if (not obj.person.user) or obj.person.user != user:
-                return False
-        return True
-
-
-class HasFileOwnerPermission(permissions.IsAuthenticated):
-    def has_object_permission(self, request, view, obj):
-        """
-          Checks if the user is the owner of the folder
-        """
-
-        user = request.user
-        if user is None:
-            return False
-        if has_omnipotence_rights(user):
-            return True
-
-        if (not obj.folder.person.user is None) and obj.folder.person.user == user:
-            return True
-
-
-class HasFilesOwnerPermission(permissions.IsAuthenticated):
-    def has_object_permission(self, request, view, objList):
-        """
-            Checks if the user is the owner of the folder list
-        """
-        user = request.user
-        if user is None:
-            return False
-        if has_omnipotence_rights(user):
-            return True
-        for obj in objList:
-            if (not obj.folder.person.user) or obj.folder.person.user != user:
-                return False
-        return True
 
 
 class HasRootFolderPermission(permissions.IsAuthenticated):
@@ -138,15 +101,11 @@ class HasRootFolderPermission(permissions.IsAuthenticated):
         """
             Checks if the user has access_permissions for filemanager
         """
-        person = request.person
         try:
-            code = compile(
-                filemanager.filemanager_access_permissions, '<bool>', 'eval')
-            if(eval(code)):
-                return True
-        except:
+            return evaluate_access_permission(
+                filemanager.filemanager_access_permissions, request.person)
+        except Exception:
             return False
-        return False
 
 
 class HasParentPermission(permissions.IsAuthenticated):

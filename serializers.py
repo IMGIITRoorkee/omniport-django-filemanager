@@ -2,9 +2,9 @@ import os
 
 from rest_framework import serializers
 
-from kernel.managers.get_role import get_all_roles
-
 from formula_one.serializers.base import ModelSerializer
+from django_filemanager.expressions import resolve_public_url
+from django_filemanager.utils import safe_item_name
 from django_filemanager.models import Folder, File, FileManager, BASE_PROTECTED_URL
 from kernel.models import Person
 
@@ -28,23 +28,15 @@ class subFolderSerializer(ModelSerializer):
         fields = '__all__'
 
     def get_public_folder_url(self, obj):
-        person = None
-        request = self.context.get("request")
-        if request and hasattr(request, "person"):
-            person = request.person
         if(not obj.filemanager.is_public):
             return None
-        try:
-            baseUrl = eval(obj.filemanager.base_public_url)
-            if obj.root:
-                root_folder_path = f"{obj.root.get_path()}/"
-            else:
-                root_folder_path = f"{obj.get_path()}/"
-            remaining_path = obj.get_path().split(root_folder_path, 1)[-1]
-            path = os.path.join(baseUrl, remaining_path)
-        except:
-            path = None
-        return path
+        if obj.root:
+            root_folder_path = f"{obj.root.get_path()}/"
+        else:
+            root_folder_path = f"{obj.get_path()}/"
+        remaining_path = obj.get_path().split(root_folder_path, 1)[-1]
+        return resolve_public_url(
+            obj.filemanager.base_public_url, remaining_path)
 
 
 class FileSerializer(ModelSerializer):
@@ -63,26 +55,26 @@ class FileSerializer(ModelSerializer):
         fields = '__all__'
         read_only_fields = ['shared_users']
 
+    def validate_file_name(self, value):
+        """
+        Refuse a name that would traverse out of the folder it sits in
+        :param value: the file name the caller asked for
+        :return: the same name, once it cannot traverse
+        """
+
+        return safe_item_name(value)
+
     def get_file_url(self, obj):
-        person = None
-        request = self.context.get("request")
-        if request and hasattr(request, "person"):
-            person = request.person
         if(not obj.folder.filemanager.is_public):
             return obj.upload.name
-        try:
-            baseUrl = eval(obj.folder.filemanager.base_public_url)
-            if obj.folder.root:
-                root_folder_path = f"{obj.folder.root.get_path()}/"
-            else:
-                root_folder_path = f"{obj.folder.get_path()}/"
-            remaining_path = obj.upload.name.split(root_folder_path, 1)[-1]
-            path = os.path.join(baseUrl, remaining_path)
-        except:
-            baseUrl = BASE_PROTECTED_URL
-            remaining_path = obj.upload.name
-            path = os.path.join(baseUrl, remaining_path)
-        return path
+        if obj.folder.root:
+            root_folder_path = f"{obj.folder.root.get_path()}/"
+        else:
+            root_folder_path = f"{obj.folder.get_path()}/"
+        remaining_path = obj.upload.name.split(root_folder_path, 1)[-1]
+        return resolve_public_url(
+            obj.folder.filemanager.base_public_url, remaining_path
+        ) or os.path.join(BASE_PROTECTED_URL, obj.upload.name)
 
 
 class FolderSerializer(ModelSerializer):
@@ -102,6 +94,34 @@ class FolderSerializer(ModelSerializer):
         fields = '__all__'
         read_only_fields = ['person', 'filemanagername', 'max_space'
                             'content_size', 'shared_users', 'path', 'is_filemanager_public']
+
+    def validate_folder_name(self, value):
+        """
+        Refuse a name that would traverse out of the folder it is created in
+        :param value: the folder name the caller asked for
+        :return: the same name, once it cannot traverse
+        """
+
+        return safe_item_name(value)
+
+    def validate(self, attrs):
+        """
+        Check that the folder hangs off a folder of the same person. A root
+        folder is granted by the filemanager rather than created here.
+        :param attrs: the deserialized data passed to the serializer
+        :return: the same data, once the tree it names is the person's own
+        """
+
+        person = self.context.get('request').person
+        if self.instance is None and attrs.get('parent') is None:
+            raise serializers.ValidationError(
+                {'parent': 'a root folder is granted by the filemanager'})
+        for field in ('parent', 'root'):
+            folder = attrs.get(field)
+            if folder is not None and folder.person != person:
+                raise serializers.ValidationError(
+                    {field: 'must be a folder of your own'})
+        return attrs
 
     def create(self, validated_data):
         """

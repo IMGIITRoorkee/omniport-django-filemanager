@@ -9,7 +9,7 @@ from django.conf import settings
 
 from django_filemanager.models import Folder
 from django_filemanager.views.utils.file import create_file
-from django_filemanager.utils import add_content_size
+from django_filemanager.utils import add_content_size, safe_item_name
 
 
 def sanitize_folder_name(parent_folder_path, folder_name, freq=0):
@@ -70,6 +70,7 @@ def shift_single_folder(folder_path, parent_folder, filemanager_path, filemanage
 
     folder_size = os.path.getsize(folder_path)
 
+    foldername = safe_item_name(foldername)
     new_folder = Folder.objects.create(folder_name=foldername, parent=parent_folder,
                                        filemanager=parent_folder.filemanager, root=parent_folder.root, person=parent_folder.person,
                                        path=os.path.join(parent_folder.path, '/', foldername), content_size=folder_size)

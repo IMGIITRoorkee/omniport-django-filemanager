@@ -4,11 +4,12 @@ from rest_framework import status
 from rest_framework.decorators import action
 
 from kernel.models import Person
-from shell.models import Student, FacultyMember
-from shell.models.roles.maintainer import Maintainer
 
 from kernel.permissions.omnipotence import HasOmnipotenceRights
-from kernel.managers.get_role import get_all_roles
+from django_filemanager.expressions import (
+    evaluate_access_permission,
+    resolve_folder_name,
+)
 from django_filemanager.serializers import FileManagerSerializer
 from django_filemanager.models import Folder, FileManager
 from django_filemanager.constants import DEFAULT_ROOT_FOLDER_NAME_TEMPLATE, BATCH_SIZE
@@ -30,6 +31,8 @@ class FileManagerViewSet(viewsets.ModelViewSet):
                 'folder_name_template', None)
             filemanager_access_permissions = request.data.get(
                 'filemanager_access_permissions', None)
+            if not filemanager_access_permissions:
+                return Response('filemanager_access_permissions is required', status=400)
             if folder_name_template == None or folder_name_template == '':
                 folder_name_template = DEFAULT_ROOT_FOLDER_NAME_TEMPLATE
             filemanager = FileManager.objects.create(
@@ -55,21 +58,21 @@ class FileManagerViewSet(viewsets.ModelViewSet):
             error_access_permission = 0
             for i in range(0, len(people)):
                 person = people[i]
-                if(error_folder_name_template + error_folder_name_template > 20):
+                if(error_access_permission + error_folder_name_template > 20):
                     filemanager.delete()
                     return Response(f'access_permissions failed for {error_access_permission} people and folder_name_template failed for {error_folder_name_template} person', status=400)
 
                 try:
-                    code = compile(
-                        filemanager.filemanager_access_permissions, '<bool>', 'eval')
-                    filemanager_access_permission = eval(code)
+                    filemanager_access_permission = evaluate_access_permission(
+                        filemanager.filemanager_access_permissions, person)
                 except:
                     error_access_permission += 1
                     continue
 
                 if filemanager_access_permission:
                     try:
-                        unique_name = eval(filemanager.folder_name_template)
+                        unique_name = resolve_folder_name(
+                            filemanager.folder_name_template, person)
                     except:
                         error_folder_name_template += 1
                         continue

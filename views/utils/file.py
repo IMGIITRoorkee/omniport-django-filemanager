@@ -3,6 +3,7 @@ import os
 import subprocess
 
 from django_filemanager.models import File
+from django_filemanager.utils import safe_item_name
 
 
 def file_exists(parent_folder_path, file_name, freq=0):
@@ -46,7 +47,7 @@ def create_file(parent_folder, file_name, extension, file_size):
         instance: new file instance 
     """
     path = os.path.join(parent_folder.get_path(), file_name)
-    new_file = File(file_name=file_name, extension=extension[1:],
+    new_file = File(file_name=safe_item_name(file_name), extension=extension[1:],
                     starred=False, size=file_size, folder=parent_folder)
     if parent_folder.filemanager.is_public:
         base_location = 'public'

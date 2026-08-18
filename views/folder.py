@@ -8,7 +8,6 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
 
 from kernel.models import Person
 
@@ -17,7 +16,7 @@ from django_filemanager.serializers import subFolderSerializer, FolderSerializer
 from django_filemanager.constants import ACCEPT, REJECT, REQUEST_STATUS_MAP
 from django_filemanager.models import Folder, File, FileManager, BASE_PROTECTED_URL
 from django_filemanager.utils import update_root_folders, reduce_content_size, is_folder_shared
-from django_filemanager.permissions import HasFolderOwnerPermission, HasFoldersOwnerPermission,   HasRootFolderPermission, HasParentPermission
+from django_filemanager.permissions import IsOwner, HasRootFolderPermission, HasParentPermission
 from django_filemanager.views.utils.copy_folder import shift_single_folder
 
 
@@ -28,14 +27,12 @@ class FolderViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = FolderSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsOwner]
     permission_classes_by_action = {
         'get_data_request': [HasOmnipotenceRights],
         'handle_request': [HasOmnipotenceRights],
         'get_root': [HasRootFolderPermission],
-        'destroy': [HasFolderOwnerPermission],
-        'bulk_delete': [HasFoldersOwnerPermission],
-        'default': [IsAuthenticated],
+        'default': [IsOwner],
         'get_parent_folders': [HasParentPermission]
     }
 
@@ -60,52 +57,43 @@ class FolderViewSet(viewsets.ModelViewSet):
             return Response('Filemanager instance with given name doesnot exists', status=status.HTTP_400_BAD_REQUEST)
         person = self.request.person
         self.check_object_permissions(self.request, filemanager)
-        update_root_folders_response = update_root_folders(person)
-        if update_root_folders_response['status'] == 200:
+        update_root_folders(person)
+        try:
             folder = Folder.objects.get(
                 person=person, root=None, parent=None, filemanager=filemanager)
-            serializer = self.serializer_class(
-                folder, context={'request': request})
-            return Response(serializer.data)
-        else:
-            return Response(update_root_folders_response['message'], update_root_folders_response['status'])
+        except Folder.DoesNotExist:
+            return Response(f'{filemanager} : no root folder for this person', status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.serializer_class(
+            folder, context={'request': request})
+        return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def get_root_folders(self, request):
         person = self.request.person
-        update_root_folders_response = update_root_folders(person)
-        if update_root_folders_response['status'] == 200:
-            folders = Folder.objects.filter(
-                person=person, parent=None
-            )
-            serializer = rootFolderSerializer(
-                folders, many=True
-            )
-            return Response(serializer.data)
-        else:
-            return Response(update_root_folders_response['message'], update_root_folders_response['status'])
+        update_root_folders(person)
+        folders = Folder.objects.filter(
+            person=person, parent=None
+        )
+        serializer = rootFolderSerializer(
+            folders, many=True
+        )
+        return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def shared_with_me(self, request):
         person = self.request.person
-        update_root_folders_response = update_root_folders(person)
-        if update_root_folders_response['status'] == 200:
-            folders = Folder.objects.filter(
-                shared_users=person
-            )
-            serializer = FolderSerializer(
-                folders, many=True
-            )
-            return Response(serializer.data)
-        else:
-            return Response(update_root_folders_response['message'], update_root_folders_response['status'])
+        update_root_folders(person)
+        folders = Folder.objects.filter(
+            shared_users=person
+        )
+        serializer = FolderSerializer(
+            folders, many=True
+        )
+        return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
     def generate_data_request(self, request, pk):
-        try:
-            folder = Folder.objects.get(pk=pk)
-        except Folder.DoesNotExist:
-            return HttpResponse('Folder Not available', status=status.HTTP_400_BAD_REQUEST)
+        folder = self.get_object()
 
         additional_space = request.data.get('additional_space')
         if additional_space == None:
@@ -162,12 +150,8 @@ class FolderViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['PATCH'], )
     def update_shared_users(self, request, *args, **kwargs):
-        pk = kwargs['pk']
         share_with_all = request.data.get('share_with_all') == 'true'
-        try:
-            folder = Folder.objects.get(pk=pk)
-        except Folder.DoesNotExist:
-            return HttpResponse('Folder Not available', status=status.HTTP_400_BAD_REQUEST)
+        folder = self.get_object()
 
         try:
             folder.share_with_all = share_with_all
